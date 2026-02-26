@@ -1,98 +1,270 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import Reels from "@/components/reels";
+import React from "react";
+import {
+  FlatList,
+  Image,
+  ImageSourcePropType,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+type ChatItem = {
+  id: string;
+  name: string;
+  message: string;
+  time: string;
+  avatar?: ImageSourcePropType;
+  initials?: string;
+  avatarBg?: string;
+  isOnline?: boolean;
+  unread?: number;
+  isSelected?: boolean;
+};
 
-export default function HomeScreen() {
+const CHATS: ChatItem[] = [
+  {
+    id: "1",
+    name: "X-AE-A-13b",
+    message: "Enter your message description here...",
+    time: "12:25",
+    avatar: require("@/assets/images/icon.png"),
+    isOnline: true,
+  },
+  {
+    id: "2",
+    name: "Jerome White",
+    message: "Enter your message description here...",
+    time: "12:25",
+    avatar: require("@/assets/images/icon.png"),
+    isOnline: true,
+  },
+  {
+    id: "3",
+    name: "Madagascar Silver",
+    message: "Enter your message description here...",
+    time: "12:25",
+    avatar: require("@/assets/images/icon.png"),
+    unread: 999,
+  },
+  {
+    id: "4",
+    name: "Pippins McGray",
+    message: "Enter your message description here...",
+    time: "12:25",
+    avatar: require("@/assets/images/icon.png"),
+  },
+  {
+    id: "5",
+    name: "McKinsey Vermillion",
+    message: "Enter your message description here...",
+    time: "12:25",
+    avatar: require("@/assets/images/icon.png"),
+    isSelected: true,
+  },
+  {
+    id: "6",
+    name: "Dorian F. Gray",
+    message: "Enter your message description here...",
+    time: "12:25",
+    avatar: require("@/assets/images/icon.png"),
+    unread: 2,
+  },
+  {
+    id: "7",
+    name: "Benedict Combersmacks",
+    message: "Enter your message description here...",
+    time: "12:25",
+    avatar: require("@/assets/images/icon.png"),
+  },
+  {
+    id: "8",
+    name: "Kaori D. Miyazono",
+    message: "Enter your message description here...",
+    time: "12:25",
+    avatar: require("@/assets/images/icon.png"),
+  },
+];
+
+function ChatRow({ item }: { item: ChatItem }) {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <TouchableOpacity
+      activeOpacity={0.7}
+      style={[styles.chatRow, item.isSelected && styles.chatRowSelected]}
+    >
+      <View style={styles.avatarContainer}>
+        {item.avatar ? (
+          <Image source={item.avatar} style={styles.chatAvatar} />
+        ) : (
+          <View
+            style={[
+              styles.chatInitials,
+              item.avatarBg ? { backgroundColor: item.avatarBg } : undefined,
+            ]}
+          >
+            <Text style={styles.chatInitialsText}>{item.initials}</Text>
+          </View>
+        )}
+        {item.isOnline && <View style={styles.onlineDot} />}
+      </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      <View style={styles.chatMid}>
+        <Text style={styles.chatName} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={styles.chatMessage} numberOfLines={1}>
+          {item.message}
+        </Text>
+      </View>
+
+      <View style={styles.chatRight}>
+        <Text style={styles.chatTime}>{item.time}</Text>
+        {item.unread ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{item.unread}</Text>
+          </View>
+        ) : null}
+      </View>
+    </TouchableOpacity>
   );
 }
 
+function ChatsHeader() {
+  return (
+    <View style={styles.chatsHeader}>
+      <Text style={styles.chatsTitle}>Chats</Text>
+    </View>
+  );
+}
+
+function ListHeader() {
+  return (
+    <>
+      <Reels />
+      <ChatsHeader />
+    </>
+  );
+}
+
+export default function Index() {
+  return (
+    <SafeAreaView style={styles.safe}>
+      <FlatList
+        data={CHATS}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={ListHeader}
+        renderItem={({ item }) => <ChatRow item={item} />}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+      />
+    </SafeAreaView>
+  );
+}
+
+const AVATAR_SIZE = 50;
+
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  safe: {
+    flex: 1,
+    backgroundColor: "#0A0A0B",
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  listContent: {
+    paddingBottom: 120,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  chatsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 12,
+  },
+  chatsTitle: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  chatRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  chatRowSelected: {
+    backgroundColor: "#1A1640",
+    borderRadius: 16,
+    marginHorizontal: 8,
+    paddingHorizontal: 16,
+  },
+  avatarContainer: {
+    position: "relative",
+  },
+  chatAvatar: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+  },
+  chatInitials: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: "#1C1C2E",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chatInitialsText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  onlineDot: {
+    position: "absolute",
+    bottom: 2,
+    left: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#22C55E",
+    borderWidth: 2,
+    borderColor: "#0A0A0B",
+  },
+  chatMid: {
+    flex: 1,
+    marginLeft: 14,
+    justifyContent: "center",
+  },
+  chatName: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 3,
+  },
+  chatMessage: {
+    color: "#888",
+    fontSize: 13,
+  },
+  chatRight: {
+    alignItems: "flex-end",
+    gap: 6,
+  },
+  chatTime: {
+    color: "#888",
+    fontSize: 12,
+  },
+  badge: {
+    backgroundColor: "#6C56FF",
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700",
   },
 });
