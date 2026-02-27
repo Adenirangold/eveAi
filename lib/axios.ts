@@ -23,6 +23,7 @@ const api = axios.create({
 
 api.interceptors.request.use(async (config) => {
   const token = await SecureStore.getItemAsync("accessToken");
+  console.log("token", token);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

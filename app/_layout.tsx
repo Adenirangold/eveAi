@@ -6,6 +6,7 @@ import {
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -48,26 +49,28 @@ export default function RootLayout() {
   const isReady = (loaded || error) && animationDone;
 
   return (
-    <QueryProvider>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        {isReady ? (
-          <>
-            <ProfileHydrator />
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-              <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen name="all-chat" options={{ headerShown: false }} />
-            </Stack>
-          </>
-        ) : (
-          <SplashScreenComponent
-            onAnimationComplete={() => setAnimationDone(true)}
-          />
-        )}
-        <StatusBar style="auto" />
-        <CustomToast />
-      </ThemeProvider>
-    </QueryProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryProvider>
+        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+          {isReady ? (
+            <>
+              <ProfileHydrator />
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+
+                <Stack.Screen name="all-chat" options={{ headerShown: false }} />
+              </Stack>
+            </>
+          ) : (
+            <SplashScreenComponent
+              onAnimationComplete={() => setAnimationDone(true)}
+            />
+          )}
+          <StatusBar style="auto" />
+          <CustomToast />
+        </ThemeProvider>
+      </QueryProvider>
+    </GestureHandlerRootView>
   );
 }

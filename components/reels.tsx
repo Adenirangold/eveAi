@@ -1,110 +1,172 @@
-import React from "react";
+import type { Story } from "@/services/stories";
+import { storiesService } from "@/services/stories";
+import { LinearGradient } from "expo-linear-gradient";
+import React, {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from "react";
 import {
   FlatList,
-  Image,
-  ImageSourcePropType,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SvgUri } from "react-native-svg";
+import ReelsSkeleton from "./skeleton/ReelsSkeleton";
+import StoryViewer from "./StoryViewer";
 
-type ReelItem = {
-  id: string;
-  name: string;
-  avatar?: ImageSourcePropType;
-  initials?: string;
-  isAddStory?: boolean;
-  hasStory?: boolean;
-};
+export interface ReelsHandle {
+  refetch: () => void;
+}
 
-const DUMMY_REELS: ReelItem[] = [
-  {
-    id: "1",
-    name: "Terry",
-    avatar: require("@/assets/images/icon.png"),
-    hasStory: true,
-  },
-  { id: "2", name: "Craig", initials: "SA", hasStory: true },
-  { id: "3", name: "Craig", initials: "SA", hasStory: true },
-  { id: "4", name: "Craig", initials: "SA", hasStory: true },
-  { id: "5", name: "Lena", initials: "LN", hasStory: true },
-  { id: "6", name: "Max", initials: "MX", hasStory: true },
-];
+const AVATAR_SIZE = 52;
+const RING_SIZE = 62;
 
-function ReelAvatar({ item }: { item: ReelItem }) {
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function ReelAvatar({ item, onPress }: { item: Story; onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.reelWrapper} activeOpacity={0.7}>
-      <View style={[styles.storyRing, item.hasStory && styles.activeRing]}>
-        {item.avatar ? (
-          <Image source={item.avatar} style={styles.avatar} />
-        ) : (
-          <View style={styles.initialsCircle}>
-            <Text style={styles.initialsText}>{item.initials}</Text>
-          </View>
-        )}
-      </View>
+    <TouchableOpacity
+      style={styles.reelWrapper}
+      activeOpacity={0.7}
+      onPress={onPress}
+    >
+      <LinearGradient
+        colors={["#7C4DFF", "#E040FB", "#FF5252"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.storyRing}
+      >
+        <View style={styles.ringInner}>
+          {item.contact.avatar ? (
+            <View style={styles.avatarCircle}>
+              <SvgUri
+                uri={item.contact.avatar}
+                width={AVATAR_SIZE}
+                height={AVATAR_SIZE}
+              />
+            </View>
+          ) : (
+            <View style={styles.initialsCircle}>
+              <Text style={styles.initialsText}>
+                {getInitials(item.contact.name)}
+              </Text>
+            </View>
+          )}
+        </View>
+      </LinearGradient>
       <Text style={styles.reelName} numberOfLines={1}>
-        {item.name}
+        {item.contact.name}
       </Text>
     </TouchableOpacity>
   );
 }
 
-export default function Reels() {
-  return (
-    <FlatList
-      data={DUMMY_REELS}
-      keyExtractor={(item) => item.id}
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.listContent}
-      renderItem={({ item }) => <ReelAvatar item={item} />}
-      style={{ overflow: "visible" }}
-    />
-  );
-}
+const Reels = React.forwardRef<ReelsHandle>((_props, ref) => {
+  const [stories, setStories] = useState<Story[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
-const AVATAR_SIZE = 56;
-const RING_SIZE = 64;
+  const fetchStories = useCallback(async () => {
+    try {
+      const data = await storiesService.getStories();
+      setStories(data);
+    } catch (err) {
+      console.error("Failed to fetch stories:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useImperativeHandle(ref, () => ({ refetch: fetchStories }), [fetchStories]);
+
+  useEffect(() => {
+    fetchStories();
+  }, [fetchStories]);
+
+  const openStory = useCallback((index: number) => {
+    setSelectedIndex(index);
+    setViewerVisible(true);
+  }, []);
+
+  const closeViewer = useCallback(() => {
+    setViewerVisible(false);
+  }, []);
+
+  if (loading) {
+    return <ReelsSkeleton />;
+  }
+
+  if (stories.length === 0) return null;
+
+  return (
+    <>
+      <FlatList
+        data={stories}
+        keyExtractor={(item) => item.id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        renderItem={({ item, index }) => (
+          <ReelAvatar item={item} onPress={() => openStory(index)} />
+        )}
+        style={{ overflow: "visible" }}
+      />
+      <StoryViewer
+        stories={stories}
+        initialIndex={selectedIndex}
+        visible={viewerVisible}
+        onClose={closeViewer}
+      />
+    </>
+  );
+});
+
+export default Reels;
 
 const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    gap: 16,
+    gap: 14,
   },
   reelWrapper: {
     alignItems: "center",
     width: 72,
     paddingBottom: 4,
   },
-  addStoryCircle: {
-    width: RING_SIZE,
-    height: RING_SIZE,
-    borderRadius: RING_SIZE / 2,
-    borderWidth: 1.5,
-    borderColor: "#3A3A4A",
-    borderStyle: "dashed",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   storyRing: {
     width: RING_SIZE,
     height: RING_SIZE,
     borderRadius: RING_SIZE / 2,
-    borderWidth: 2,
-    borderColor: "#2A2A35",
     alignItems: "center",
     justifyContent: "center",
   },
-  activeRing: {
-    borderColor: "#6C56FF",
+  ringInner: {
+    width: RING_SIZE - 4,
+    height: RING_SIZE - 4,
+    borderRadius: (RING_SIZE - 4) / 2,
+    backgroundColor: "#0D0B1E",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  avatar: {
+  avatarCircle: {
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: "#1C1C2E",
+    overflow: "hidden",
   },
   initialsCircle: {
     width: AVATAR_SIZE,
@@ -118,11 +180,13 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
     fontWeight: "600",
+    fontFamily: "Outfit-Regular",
   },
   reelName: {
     color: "#ccc",
     fontSize: 11,
     marginTop: 6,
     textAlign: "center",
+    fontFamily: "Outfit-SemiBold",
   },
 });

@@ -1,6 +1,8 @@
+import icons from "@/constants/icons";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
+  Image,
   Text,
   TextInput,
   TextInputProps,
@@ -31,6 +33,9 @@ export interface CustomInputProps extends Omit<TextInputProps, "style"> {
   modal?: boolean;
   error?: string;
   search?: boolean;
+  backgroundColor?: string;
+  borderColor?: string;
+  borderRadius?: number;
 }
 
 const CustomInput: React.FC<CustomInputProps> = ({
@@ -54,6 +59,9 @@ const CustomInput: React.FC<CustomInputProps> = ({
   modal = false,
   error,
   search = false,
+  backgroundColor = "#191919",
+  borderColor: borderColorProp,
+  borderRadius,
   ...props
 }) => {
   const [isFocused, setIsFocused] = useState<boolean>(false);
@@ -89,15 +97,16 @@ const CustomInput: React.FC<CustomInputProps> = ({
         </Text>
       )}
       <View className="relative w-full">
-        {/* {search && (
+        {search && (
           <View className="absolute left-[14px] top-[14px] z-10">
             <Image
               source={icons.search}
               style={{ width: 20, height: 20 }}
               resizeMode="contain"
+              tintColor="#9CA3AF"
             />
           </View>
-        )} */}
+        )}
         <TextInputComponent
           value={value}
           onChangeText={onChangeText}
@@ -127,10 +136,11 @@ const CustomInput: React.FC<CustomInputProps> = ({
             ${editable ? "" : "opacity-50"}
           `}
           style={{
-            borderColor: error ? "#FF3B3B" : "transparent",
-            backgroundColor: "#191919",
+            borderColor: error ? "#FF3B3B" : (borderColorProp ?? "transparent"),
+            backgroundColor,
             color: "#E6F3F3",
             ...(multiline && { minHeight: 48 }),
+            ...(borderRadius != null && { borderRadius }),
           }}
           {...props}
         />
@@ -143,17 +153,9 @@ const CustomInput: React.FC<CustomInputProps> = ({
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             {isPasswordVisible ? (
-              <Ionicons
-                name="eye-off"
-                size={20}
-                color="#9CA3AF"
-              />
+              <Ionicons name="eye-off" size={20} color="#9CA3AF" />
             ) : (
-              <Ionicons
-                name="eye"
-                size={20}
-                color="#9CA3AF"
-              />
+              <Ionicons name="eye" size={20} color="#9CA3AF" />
             )}
           </TouchableOpacity>
         )}

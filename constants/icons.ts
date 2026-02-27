@@ -4,6 +4,7 @@ const google = require("../assets/icons/Google.png");
 const info = require("../assets/icons/info.png");
 const close = require("../assets/icons/close.png");
 const logout = require("../assets/icons/logout.png");
+const search = require("../assets/icons/search.png");
 
 const icons = {
   bubbleChat,
@@ -12,6 +13,7 @@ const icons = {
   info,
   close,
   logout,
+  search,
 };
 
 export default icons;

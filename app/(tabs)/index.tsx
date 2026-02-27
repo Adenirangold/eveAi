@@ -1,218 +1,296 @@
 import Background from "@/components/BackGround";
-import Reels from "@/components/reels";
-import React from "react";
+import CustomInput from "@/components/CustomInput";
+import VerifyEmailBanner from "@/components/VerifyEmailBanner";
+import Reels, { ReelsHandle } from "@/components/reels";
+import ChatRowSkeleton from "@/components/skeleton/ChatRowSkeleton";
+import ChatsHeaderSkeleton from "@/components/skeleton/ChatsHeaderSkeleton";
+import { Contact, contactsService } from "@/services/contacts";
+import { Ionicons } from "@expo/vector-icons";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
+  Animated,
   FlatList,
-  Image,
-  ImageSourcePropType,
+  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { SvgUri } from "react-native-svg";
 
-type ChatItem = {
-  id: string;
-  name: string;
-  message: string;
-  time: string;
-  avatar?: ImageSourcePropType;
-  initials?: string;
-  avatarBg?: string;
-  isOnline?: boolean;
-  unread?: number;
-  isSelected?: boolean;
-};
+function formatTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
 
-const CHATS: ChatItem[] = [
-  {
-    id: "1",
-    name: "X-AE-A-13b",
-    message: "Enter your message description here...",
-    time: "12:25",
-    avatar: require("@/assets/images/icon.png"),
-    isOnline: true,
-  },
-  {
-    id: "2",
-    name: "Jerome White",
-    message: "Enter your message description here...",
-    time: "12:25",
-    avatar: require("@/assets/images/icon.png"),
-    isOnline: true,
-  },
-  {
-    id: "3",
-    name: "Madagascar Silver",
-    message: "Enter your message description here...",
-    time: "12:25",
-    avatar: require("@/assets/images/icon.png"),
-    unread: 999,
-  },
-  {
-    id: "4",
-    name: "Pippins McGray",
-    message: "Enter your message description here...",
-    time: "12:25",
-    avatar: require("@/assets/images/icon.png"),
-  },
-  {
-    id: "5",
-    name: "McKinsey Vermillion",
-    message: "Enter your message description here...",
-    time: "12:25",
-    avatar: require("@/assets/images/icon.png"),
-    isSelected: true,
-  },
-  {
-    id: "6",
-    name: "Dorian F. Gray",
-    message: "Enter your message description here...",
-    time: "12:25",
-    avatar: require("@/assets/images/icon.png"),
-    unread: 2,
-  },
-  {
-    id: "7",
-    name: "Benedict Combersmacks",
-    message: "Enter your message description here...",
-    time: "12:25",
-    avatar: require("@/assets/images/icon.png"),
-  },
-  {
-    id: "8",
-    name: "Kaori D. Miyazono",
-    message: "Enter your message description here...",
-    time: "12:25",
-    avatar: require("@/assets/images/icon.png"),
-  },
-  {
-    id: "9",
-    name: "Kaori D. Miyazono",
-    message: "Enter your message description here...",
-    time: "12:25",
-    avatar: require("@/assets/images/icon.png"),
-  },
-  {
-    id: "10",
-    name: "Kaori D. Miyazono",
-    message: "Enter your message description here...",
-    time: "12:25",
-    avatar: require("@/assets/images/icon.png"),
-  },
-];
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
-function ChatRow({ item }: { item: ChatItem }) {
+const AVATAR_SIZE = 50;
+const DELETE_WIDTH = 80;
+
+let openSwipeable: Swipeable | null = null;
+
+function renderRightActions(
+  _progress: Animated.AnimatedInterpolation<number>,
+  dragX: Animated.AnimatedInterpolation<number>,
+  onDelete: () => void,
+) {
+  const scale = dragX.interpolate({
+    inputRange: [-DELETE_WIDTH, 0],
+    outputRange: [1, 0.4],
+    extrapolate: "clamp",
+  });
+
   return (
     <TouchableOpacity
-      activeOpacity={0.7}
-      style={[styles.chatRow, item.isSelected && styles.chatRowSelected]}
+      activeOpacity={0.8}
+      onPress={onDelete}
+      style={styles.deleteAction}
     >
-      <View style={styles.avatarContainer}>
-        {item.avatar ? (
-          <Image source={item.avatar} style={styles.chatAvatar} />
-        ) : (
-          <View
-            style={[
-              styles.chatInitials,
-              item.avatarBg ? { backgroundColor: item.avatarBg } : undefined,
-            ]}
-          >
-            <Text style={styles.chatInitialsText}>{item.initials}</Text>
-          </View>
-        )}
-        {item.isOnline && <View style={styles.onlineDot} />}
-      </View>
-
-      <View style={styles.chatMid}>
-        <Text style={styles.chatName} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text style={styles.chatMessage} numberOfLines={1}>
-          {item.message}
-        </Text>
-      </View>
-
-      <View style={styles.chatRight}>
-        <Text style={styles.chatTime}>{item.time}</Text>
-        {item.unread ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{item.unread}</Text>
-          </View>
-        ) : null}
-      </View>
+      <Animated.View style={{ transform: [{ scale }], alignItems: "center" }}>
+        <Ionicons name="trash-outline" size={22} color="#fff" />
+        <Text style={styles.deleteText}>Delete</Text>
+      </Animated.View>
     </TouchableOpacity>
   );
 }
 
-function ChatsHeader() {
+function ChatRow({
+  item,
+  onDelete,
+}: {
+  item: Contact;
+  onDelete: (id: string) => void;
+}) {
+  const swipeableRef = useRef<Swipeable>(null);
+
+  const handleDelete = useCallback(() => {
+    swipeableRef.current?.close();
+    onDelete(item.id);
+  }, [item.id, onDelete]);
+
+  const onSwipeOpen = useCallback(() => {
+    if (openSwipeable && openSwipeable !== swipeableRef.current) {
+      openSwipeable.close();
+    }
+    openSwipeable = swipeableRef.current;
+  }, []);
+
+  return (
+    <Swipeable
+      ref={swipeableRef}
+      renderRightActions={(progress, dragX) =>
+        renderRightActions(progress, dragX, handleDelete)
+      }
+      overshootRight={false}
+      rightThreshold={40}
+      onSwipeableOpen={onSwipeOpen}
+    >
+      <TouchableOpacity activeOpacity={0.7} style={styles.chatRow}>
+        <View style={styles.avatarContainer}>
+          {item.avatar ? (
+            <View style={styles.chatAvatar}>
+              <SvgUri
+                uri={item.avatar}
+                width={AVATAR_SIZE}
+                height={AVATAR_SIZE}
+              />
+            </View>
+          ) : (
+            <View style={styles.chatInitials}>
+              <Text style={styles.chatInitialsText}>
+                {getInitials(item.name)}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.chatMid}>
+          <Text style={styles.chatName} numberOfLines={1}>
+            {item.name}
+          </Text>
+          <Text style={styles.chatMessage} numberOfLines={1}>
+            {item.bio}
+          </Text>
+        </View>
+
+        <View style={styles.chatRight}>
+          <Text style={styles.chatTime}>{formatTime(item.addedAt)}</Text>
+        </View>
+      </TouchableOpacity>
+    </Swipeable>
+  );
+}
+
+function ChatsHeader({
+  search,
+  onSearchChange,
+}: {
+  search: string;
+  onSearchChange: (text: string) => void;
+}) {
   return (
     <View style={styles.chatsHeader}>
       <Text style={styles.chatsTitle}>Chats</Text>
+      <CustomInput
+        value={search}
+        onChangeText={onSearchChange}
+        search
+        placeholder="Search"
+        backgroundColor="#1D1B31"
+        borderColor="#262626"
+        borderRadius={15}
+      />
     </View>
   );
 }
 
-function ListHeader() {
-  return (
-    <>
-      <Reels />
-      <ChatsHeader />
-    </>
-  );
-}
-
 export default function Index() {
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [search, setSearch] = useState("");
+  const reelsRef = useRef<ReelsHandle>(null);
+
+  const filteredContacts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return contacts;
+    return contacts.filter((c) => c.name.toLowerCase().includes(q));
+  }, [contacts, search]);
+
+  const fetchContacts = useCallback(async () => {
+    try {
+      const data = await contactsService.getContacts();
+      setContacts(data);
+    } catch (err) {
+      console.error("Failed to fetch contacts:", err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchContacts();
+  }, [fetchContacts]);
+
+  const deleteContact = useCallback((id: string) => {
+    setContacts((prev) => prev.filter((c) => c.id !== id));
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    reelsRef.current?.refetch();
+    fetchContacts();
+  }, [fetchContacts]);
+
   return (
     <Background>
       <SafeAreaView style={styles.safe}>
-        <ListHeader />
-        <FlatList
-          data={CHATS}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ChatRow item={item} />}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
+        <VerifyEmailBanner />
+        {loading ? (
+          <View>
+            <Reels ref={reelsRef} />
+            <ChatsHeaderSkeleton />
+            <ChatRowSkeleton />
+          </View>
+        ) : (
+          <>
+            <View>
+              <Reels ref={reelsRef} />
+              <ChatsHeader search={search} onSearchChange={setSearch} />
+            </View>
+            <FlatList
+              data={filteredContacts}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <ChatRow item={item} onDelete={deleteContact} />
+              )}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor="#6C56FF"
+                  colors={["#6C56FF"]}
+                />
+              }
+              ListEmptyComponent={
+                <Text style={styles.emptyText}>No contacts yet</Text>
+              }
+            />
+          </>
+        )}
       </SafeAreaView>
     </Background>
   );
 }
-
-const AVATAR_SIZE = 50;
 
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
   },
   listContent: {
-    paddingBottom: 120,
+    paddingBottom: 70,
+  },
+  emptyText: {
+    color: "#888",
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 40,
   },
   chatsHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 12,
+    gap: 12,
   },
   chatsTitle: {
     color: "#fff",
     fontSize: 20,
     fontWeight: "700",
+    fontFamily: "Outfit-SemiBold",
+  },
+  deleteAction: {
+    width: DELETE_WIDTH,
+    backgroundColor: "#E53935",
+    justifyContent: "center",
+    alignItems: "center",
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#1A1354",
+  },
+  deleteText: {
+    color: "#fff",
+    fontSize: 11,
+    marginTop: 4,
+    fontFamily: "Outfit-Medium",
   },
   chatRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 12,
-  },
-  chatRowSelected: {
-    backgroundColor: "#1A1640",
-    borderRadius: 16,
-    marginHorizontal: 8,
-    paddingHorizontal: 16,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#1A1354",
+    backgroundColor: "#0D0B1E",
   },
   avatarContainer: {
     position: "relative",
@@ -221,6 +299,8 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: "#1C1C2E",
+    overflow: "hidden",
   },
   chatInitials: {
     width: AVATAR_SIZE,
@@ -234,17 +314,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
-  },
-  onlineDot: {
-    position: "absolute",
-    bottom: 2,
-    left: 2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#22C55E",
-    borderWidth: 2,
-    borderColor: "#0A0A0B",
+    fontFamily: "Outfit-SemiBold",
   },
   chatMid: {
     flex: 1,
@@ -256,10 +326,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     marginBottom: 3,
+    fontFamily: "Outfit-SemiBold",
   },
   chatMessage: {
     color: "#888",
     fontSize: 13,
+    fontFamily: "Outfit-Regular",
   },
   chatRight: {
     alignItems: "flex-end",
@@ -268,19 +340,6 @@ const styles = StyleSheet.create({
   chatTime: {
     color: "#888",
     fontSize: 12,
-  },
-  badge: {
-    backgroundColor: "#6C56FF",
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 6,
-  },
-  badgeText: {
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: "700",
+    fontFamily: "Outfit-Regular",
   },
 });
