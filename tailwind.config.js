@@ -18,6 +18,10 @@ module.exports = {
           neutral: "#FAFAFA",
           neutralLight: "#E5E5E5",
         },
+        primary: {
+          primary: "#6C56FF",
+          100: "#E4E1FF",
+        },
       },
     },
   },

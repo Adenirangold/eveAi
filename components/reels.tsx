@@ -60,6 +60,7 @@ export default function Reels() {
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.listContent}
       renderItem={({ item }) => <ReelAvatar item={item} />}
+      style={{ overflow: "visible" }}
     />
   );
 }
@@ -76,6 +77,7 @@ const styles = StyleSheet.create({
   reelWrapper: {
     alignItems: "center",
     width: 72,
+    paddingBottom: 4,
   },
   addStoryCircle: {
     width: RING_SIZE,

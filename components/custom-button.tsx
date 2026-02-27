@@ -22,6 +22,8 @@ interface CustomButtonProps extends Omit<TouchableOpacityProps, "children"> {
   leftIcon?: ImageSourcePropType;
   rightIcon?: ImageSourcePropType;
   iconSize?: number;
+  leftIconTintColor?: string;
+  rightIconTintColor?: string;
 }
 
 const VARIANT_COLORS: Record<Variant, string> = {
@@ -45,6 +47,8 @@ const CustomButton = ({
   leftIcon,
   rightIcon,
   iconSize = 20,
+  leftIconTintColor,
+  rightIconTintColor,
   style,
   ...rest
 }: CustomButtonProps) => {
@@ -79,7 +83,11 @@ const CustomButton = ({
           {leftIcon && (
             <Image
               source={leftIcon}
-              style={{ width: iconSize, height: iconSize }}
+              style={{
+                width: iconSize,
+                height: iconSize,
+                tintColor: leftIconTintColor,
+              }}
               resizeMode="contain"
             />
           )}
@@ -92,7 +100,11 @@ const CustomButton = ({
           {rightIcon && (
             <Image
               source={rightIcon}
-              style={{ width: iconSize, height: iconSize }}
+              style={{
+                width: iconSize,
+                height: iconSize,
+                tintColor: rightIconTintColor,
+              }}
               resizeMode="contain"
             />
           )}

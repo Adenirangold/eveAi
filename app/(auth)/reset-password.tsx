@@ -1,11 +1,11 @@
 import BackButton from "@/components/BackButton";
 import Header from "@/components/Header";
-import LoginForm from "@/components/forms/LoginForm";
+import ResetPasswordForm from "@/components/forms/ResetPasswordForm";
 import React from "react";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const SignIn = () => {
+const ResetPassword = () => {
   return (
     <SafeAreaView className="flex-1 bg-[#0A0A0B] px-5">
       <KeyboardAvoidingView
@@ -14,19 +14,19 @@ const SignIn = () => {
       >
         <BackButton />
         <Header
-          title="Log in to your account"
-          subtitle="Welcome back! Please enter your details"
+          title="Reset Password"
+          subtitle="Enter your new password to reset your password."
         />
         <ScrollView
           className="flex-1"
           showsVerticalScrollIndicator={false}
           contentContainerClassName="pb-10 flex-grow"
         >
-          <LoginForm></LoginForm>
+          <ResetPasswordForm />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
-export default SignIn;
+export default ResetPassword;

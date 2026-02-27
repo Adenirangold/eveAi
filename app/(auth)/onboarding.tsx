@@ -2,9 +2,14 @@ import Background from "@/components/BackGround";
 import CustomButton from "@/components/custom-button";
 import images from "@/constants/images";
 import { router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import React from "react";
 import { Dimensions, Image, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const markOnboardingSeen = () => {
+  SecureStore.setItemAsync("hasSeenOnboarding", "true");
+};
 
 const onboarding = () => {
   return (
@@ -37,13 +42,19 @@ const onboarding = () => {
             <CustomButton
               title="Get Started"
               rounded="full"
-              onPress={() => router.push("/sign-up")}
+              onPress={() => {
+                markOnboardingSeen();
+                router.push("/sign-up");
+              }}
             />
             <CustomButton
               title="Have an account? Log in"
               variant="secondary"
               rounded="full"
-              onPress={() => router.push("/sign-in")}
+              onPress={() => {
+                markOnboardingSeen();
+                router.push("/sign-in");
+              }}
             />
           </View>
         </ScrollView>

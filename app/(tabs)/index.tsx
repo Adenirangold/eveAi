@@ -1,3 +1,4 @@
+import Background from "@/components/BackGround";
 import Reels from "@/components/reels";
 import React from "react";
 import {
@@ -86,6 +87,20 @@ const CHATS: ChatItem[] = [
     time: "12:25",
     avatar: require("@/assets/images/icon.png"),
   },
+  {
+    id: "9",
+    name: "Kaori D. Miyazono",
+    message: "Enter your message description here...",
+    time: "12:25",
+    avatar: require("@/assets/images/icon.png"),
+  },
+  {
+    id: "10",
+    name: "Kaori D. Miyazono",
+    message: "Enter your message description here...",
+    time: "12:25",
+    avatar: require("@/assets/images/icon.png"),
+  },
 ];
 
 function ChatRow({ item }: { item: ChatItem }) {
@@ -150,16 +165,18 @@ function ListHeader() {
 
 export default function Index() {
   return (
-    <SafeAreaView style={styles.safe}>
-      <FlatList
-        data={CHATS}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={ListHeader}
-        renderItem={({ item }) => <ChatRow item={item} />}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-      />
-    </SafeAreaView>
+    <Background>
+      <SafeAreaView style={styles.safe}>
+        <ListHeader />
+        <FlatList
+          data={CHATS}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <ChatRow item={item} />}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      </SafeAreaView>
+    </Background>
   );
 }
 
@@ -168,7 +185,6 @@ const AVATAR_SIZE = 50;
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#0A0A0B",
   },
   listContent: {
     paddingBottom: 120,

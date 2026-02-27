@@ -3,16 +3,21 @@ import React, { useEffect } from "react";
 import { Image, ImageBackground, View } from "react-native";
 import Animated, {
   Easing,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withRepeat,
   withSequence,
   withTiming,
 } from "react-native-reanimated";
 
-const SplashScreen = () => {
+const SplashScreen = ({
+  onAnimationComplete,
+}: {
+  onAnimationComplete?: () => void;
+}) => {
   const logoOpacity = useSharedValue(0);
   const logoScale = useSharedValue(0.6);
+
   useEffect(() => {
     logoOpacity.value = withTiming(1, {
       duration: 600,
@@ -21,19 +26,15 @@ const SplashScreen = () => {
 
     logoScale.value = withSequence(
       withTiming(1, { duration: 600, easing: Easing.out(Easing.ease) }),
-      withRepeat(
-        withSequence(
-          withTiming(1.08, {
-            duration: 1000,
-            easing: Easing.inOut(Easing.ease),
-          }),
-          withTiming(0.95, {
-            duration: 1000,
-            easing: Easing.inOut(Easing.ease),
-          }),
-        ),
-        -1,
-      ),
+      withTiming(1.08, { duration: 400, easing: Easing.inOut(Easing.ease) }),
+      withTiming(0.95, { duration: 400, easing: Easing.inOut(Easing.ease) }),
+      withTiming(1.08, { duration: 400, easing: Easing.inOut(Easing.ease) }),
+      withTiming(1, { duration: 400, easing: Easing.inOut(Easing.ease) }),
+      withTiming(1, { duration: 200 }, (finished) => {
+        if (finished && onAnimationComplete) {
+          runOnJS(onAnimationComplete)();
+        }
+      }),
     );
   }, []);
 
