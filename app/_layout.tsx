@@ -70,6 +70,20 @@ export default function RootLayout() {
                     name="(auth)"
                     options={{ headerShown: false }}
                   />
+                  <Stack.Screen
+                    name="chat/[id]"
+                    options={{
+                      headerShown: false,
+                      animation: "slide_from_right",
+                    }}
+                  />
+                  <Stack.Screen
+                    name="contact/[id]"
+                    options={{
+                      headerShown: false,
+                      animation: "slide_from_right",
+                    }}
+                  />
                 </Stack>
               </>
             ) : (

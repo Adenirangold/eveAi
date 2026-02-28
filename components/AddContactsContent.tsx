@@ -2,10 +2,7 @@ import {
   getLocalAvailableContacts,
   saveLocalAvailableContacts,
 } from "@/lib/database";
-import {
-  AvailableContact,
-  contactsService,
-} from "@/services/contacts";
+import { AvailableContact, contactsService } from "@/services/contacts";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -48,7 +45,11 @@ function ContactRow({
       <View style={styles.avatarContainer}>
         {item.avatar ? (
           <View style={styles.avatar}>
-            <SvgUri uri={item.avatar} width={AVATAR_SIZE} height={AVATAR_SIZE} />
+            <SvgUri
+              uri={item.avatar}
+              width={AVATAR_SIZE}
+              height={AVATAR_SIZE}
+            />
           </View>
         ) : (
           <View style={styles.initials}>
@@ -90,7 +91,11 @@ function ContactRow({
   );
 }
 
-export default function AddContactsContent({ onClose }: { onClose?: () => void }) {
+export default function AddContactsContent({
+  onClose,
+}: {
+  onClose?: () => void;
+}) {
   const queryClient = useQueryClient();
   const [addingIds, setAddingIds] = useState<Set<string>>(new Set());
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
@@ -137,10 +142,14 @@ export default function AddContactsContent({ onClose }: { onClose?: () => void }
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={onClose}
+          activeOpacity={0.7}
+        >
           <Ionicons name="chevron-down" size={28} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.title}>Add Contacts</Text>
+        <Text style={styles.title}>Add Characters</Text>
         <View style={styles.headerSpacer} />
       </View>
 

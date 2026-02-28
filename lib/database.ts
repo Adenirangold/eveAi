@@ -1,3 +1,4 @@
+import type { ChatMessage } from "@/services/chat";
 import type { AvailableContact, Contact } from "@/services/contacts";
 import type { Story } from "@/services/stories";
 import { type SQLiteDatabase, openDatabaseSync } from "expo-sqlite";
@@ -44,6 +45,23 @@ function getDb(): SQLiteDatabase {
         contactAvatar  TEXT NOT NULL
       )
     `);
+
+    _db.execSync(`
+      CREATE TABLE IF NOT EXISTS messages (
+        id        TEXT PRIMARY KEY NOT NULL,
+        userId    TEXT NOT NULL,
+        contactId TEXT NOT NULL,
+        role      TEXT NOT NULL,
+        content   TEXT NOT NULL,
+        bibleRefs TEXT,
+        createdAt TEXT NOT NULL
+      )
+    `);
+
+    _db.execSync(`
+      CREATE INDEX IF NOT EXISTS idx_messages_contact
+        ON messages (contactId, createdAt ASC)
+    `);
   }
   return _db;
 }
@@ -72,6 +90,14 @@ export function saveLocalContacts(contacts: Contact[]): void {
       );
     }
   });
+}
+
+export function getLocalContactById(id: string): Contact | null {
+  const db = getDb();
+  return (
+    db.getFirstSync<Contact>("SELECT * FROM contacts WHERE id = ?", [id]) ??
+    null
+  );
 }
 
 export function deleteLocalContact(id: string): void {
@@ -161,11 +187,47 @@ export function saveLocalStories(stories: Story[]): void {
   });
 }
 
+// ── Messages ────────────────────────────────────────
+
+export function getLocalMessages(contactId: string): ChatMessage[] {
+  const db = getDb();
+  return db.getAllSync<ChatMessage>(
+    "SELECT * FROM messages WHERE contactId = ? ORDER BY createdAt ASC",
+    [contactId],
+  );
+}
+
+export function upsertLocalMessages(messages: ChatMessage[]): void {
+  if (messages.length === 0) return;
+  const db = getDb();
+  db.withTransactionSync(() => {
+    for (const m of messages) {
+      db.runSync(
+        `INSERT OR REPLACE INTO messages
+          (id, userId, contactId, role, content, bibleRefs, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          m.id,
+          m.userId,
+          m.contactId,
+          m.role,
+          m.content,
+          m.bibleRefs,
+          m.createdAt,
+        ],
+      );
+    }
+  });
+}
+
+// ── Clear all ───────────────────────────────────────
+
 export function clearDatabase(): void {
   const db = getDb();
   db.withTransactionSync(() => {
     db.runSync("DELETE FROM contacts");
     db.runSync("DELETE FROM available_contacts");
     db.runSync("DELETE FROM stories");
+    db.runSync("DELETE FROM messages");
   });
 }

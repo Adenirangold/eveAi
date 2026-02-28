@@ -51,7 +51,14 @@ api.interceptors.response.use(
       _retry?: boolean;
     };
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const url = originalRequest.url ?? "";
+    const isAuthRequest = url.includes("/auth/");
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isAuthRequest
+    ) {
       const refreshToken = await SecureStore.getItemAsync("refreshToken");
 
       if (!refreshToken) {

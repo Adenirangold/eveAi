@@ -1,4 +1,5 @@
 import api from "@/lib/axios";
+import { getLocalContactById } from "@/lib/database";
 
 export interface Contact {
   id: string;
@@ -25,6 +26,16 @@ export interface AvailableContact {
 export const contactsService = {
   getContacts: async (): Promise<Contact[]> => {
     const { data } = await api.get<ApiResponse<Contact[]>>("/contacts");
+    return data.data;
+  },
+
+  getContact: async (contactId: string): Promise<AvailableContact> => {
+    const local = getLocalContactById(contactId);
+    if (local) return local;
+
+    const { data } = await api.get<ApiResponse<AvailableContact>>(
+      `/contacts/${contactId}`,
+    );
     return data.data;
   },
 

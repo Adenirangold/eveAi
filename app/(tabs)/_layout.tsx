@@ -6,7 +6,17 @@ import CustomTabBar from "@/components/custom-tab-bar";
 import { useAuthStore } from "@/store/auth-store";
 import { Redirect, Tabs } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
-import React, { useCallback, useRef } from "react";
+import React, { createContext, useCallback, useContext, useRef } from "react";
+
+type SheetContextType = {
+  openAddContacts: () => void;
+};
+
+const SheetContext = createContext<SheetContextType>({
+  openAddContacts: () => {},
+});
+
+export const useAddContactsSheet = () => useContext(SheetContext);
 
 export default function TabLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -31,9 +41,9 @@ export default function TabLayout() {
   }
 
   return (
-    <>
+    <SheetContext.Provider value={{ openAddContacts: openSheet }}>
       <Tabs
-        tabBar={(props) => <CustomTabBar {...props} onPlusPress={openSheet} />}
+        tabBar={(props) => <CustomTabBar {...props} />}
         screenOptions={{
           headerShown: false,
         }}
@@ -52,6 +62,6 @@ export default function TabLayout() {
       >
         <AddContactsContent onClose={closeSheet} />
       </CustomBottomSheet>
-    </>
+    </SheetContext.Provider>
   );
 }

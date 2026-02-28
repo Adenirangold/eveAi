@@ -1,3 +1,4 @@
+import { useAddContactsSheet } from "@/app/(tabs)/_layout";
 import Background from "@/components/BackGround";
 import CustomInput from "@/components/CustomInput";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
@@ -12,6 +13,7 @@ import {
 import { Contact, contactsService } from "@/services/contacts";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   FlatList,
@@ -85,9 +87,11 @@ function RightAction({
 function ChatRow({
   item,
   onDelete,
+  onPress,
 }: {
   item: Contact;
   onDelete: (id: string) => void;
+  onPress: (id: string) => void;
 }) {
   const swipeableRef = useRef<SwipeableMethods>(null);
 
@@ -95,6 +99,10 @@ function ChatRow({
     swipeableRef.current?.close();
     onDelete(item.id);
   }, [item.id, onDelete]);
+
+  const handlePress = useCallback(() => {
+    onPress(item.id);
+  }, [item.id, onPress]);
 
   const onSwipeOpen = useCallback(() => {
     if (openSwipeable && openSwipeable !== swipeableRef.current) {
@@ -113,7 +121,7 @@ function ChatRow({
       rightThreshold={40}
       onSwipeableOpen={onSwipeOpen}
     >
-      <TouchableOpacity activeOpacity={0.7} style={styles.chatRow}>
+      <TouchableOpacity activeOpacity={0.7} style={styles.chatRow} onPress={handlePress}>
         <View style={styles.avatarContainer}>
           {item.avatar ? (
             <View style={styles.chatAvatar}>
@@ -152,28 +160,46 @@ function ChatRow({
 function ChatsHeader({
   search,
   onSearchChange,
+  onAddPress,
+  showSearch,
 }: {
   search: string;
   onSearchChange: (text: string) => void;
+  onAddPress: () => void;
+  showSearch: boolean;
 }) {
   return (
     <View style={styles.chatsHeader}>
-      <Text style={styles.chatsTitle}>Chats</Text>
-      <CustomInput
-        value={search}
-        onChangeText={onSearchChange}
-        search
-        placeholder="Search"
-        backgroundColor="#1D1B31"
-        borderColor="#262626"
-        borderRadius={15}
-      />
+      <View style={styles.chatsTitleRow}>
+        <Text style={styles.chatsTitle}>Chats</Text>
+        <TouchableOpacity
+          style={styles.addCharacterButton}
+          activeOpacity={0.7}
+          onPress={onAddPress}
+        >
+          <Ionicons name="person-add-outline" size={18} color="#fff" />
+          <Text style={styles.addCharacterText}>Add</Text>
+        </TouchableOpacity>
+      </View>
+      {showSearch && (
+        <CustomInput
+          value={search}
+          onChangeText={onSearchChange}
+          search
+          placeholder="Search"
+          backgroundColor="#1D1B31"
+          borderColor="#262626"
+          borderRadius={15}
+        />
+      )}
     </View>
   );
 }
 
 export default function Index() {
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const { openAddContacts } = useAddContactsSheet();
   const [search, setSearch] = useState("");
 
   const {
@@ -225,6 +251,13 @@ export default function Index() {
     [queryClient],
   );
 
+  const openChat = useCallback(
+    (id: string) => {
+      router.push(`/chat/${id}`);
+    },
+    [router],
+  );
+
   const onRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["contacts"] });
     queryClient.invalidateQueries({ queryKey: ["stories"] });
@@ -244,13 +277,18 @@ export default function Index() {
           <>
             <View>
               <Reels />
-              <ChatsHeader search={search} onSearchChange={setSearch} />
+              <ChatsHeader
+                search={search}
+                onSearchChange={setSearch}
+                onAddPress={openAddContacts}
+                showSearch={contacts.length > 0}
+              />
             </View>
             <FlatList
               data={filteredContacts}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
-                <ChatRow item={item} onDelete={deleteContact} />
+                <ChatRow item={item} onDelete={deleteContact} onPress={openChat} />
               )}
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
@@ -263,7 +301,18 @@ export default function Index() {
                 />
               }
               ListEmptyComponent={
-                <Text style={styles.emptyText}>No contacts yet</Text>
+                <View style={styles.emptyContainer}>
+                  <Ionicons name="people-outline" size={48} color="#333" />
+                  <Text style={styles.emptyText}>No characters yet</Text>
+                  <TouchableOpacity
+                    style={styles.emptyAddButton}
+                    activeOpacity={0.7}
+                    onPress={openAddContacts}
+                  >
+                    <Ionicons name="person-add-outline" size={18} color="#fff" />
+                    <Text style={styles.emptyAddText}>Add Character</Text>
+                  </TouchableOpacity>
+                </View>
               }
             />
           </>
@@ -280,11 +329,32 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 70,
   },
+  emptyContainer: {
+    alignItems: "center",
+    paddingTop: 60,
+    gap: 12,
+  },
   emptyText: {
     color: "#888",
-    fontSize: 14,
+    fontSize: 15,
+    fontFamily: "Outfit-Regular",
     textAlign: "center",
-    marginTop: 40,
+  },
+  emptyAddButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#6C56FF",
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 22,
+    marginTop: 4,
+  },
+  emptyAddText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+    fontFamily: "Outfit-Medium",
   },
   chatsHeader: {
     paddingHorizontal: 16,
@@ -292,11 +362,31 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 12,
   },
+  chatsTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   chatsTitle: {
     color: "#fff",
     fontSize: 20,
     fontWeight: "700",
     fontFamily: "Outfit-SemiBold",
+  },
+  addCharacterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#6C56FF",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  addCharacterText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+    fontFamily: "Outfit-Medium",
   },
   deleteAction: {
     width: DELETE_WIDTH,
@@ -317,7 +407,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderBottomWidth: 0.5,
+    borderBottomWidth: 0.17,
     borderBottomColor: "#1A1354",
     // backgroundColor: "#0D0B1E",
   },
