@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
 import React from "react";
 import {
   Platform,
@@ -32,15 +31,15 @@ export default function CustomTabBar({
   state,
   descriptors,
   navigation,
-}: BottomTabBarProps) {
+  onPlusPress,
+}: BottomTabBarProps & { onPlusPress?: () => void }) {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
 
   const handlePlusPress = () => {
     if (Platform.OS === "ios") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    router.push("/all-chat");
+    onPlusPress?.();
   };
 
   const renderTab = (route: (typeof state.routes)[number], index: number) => {
@@ -129,6 +128,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "600",
+    fontFamily: "Outfit-SemiBold",
   },
   plusButton: {
     alignItems: "center",

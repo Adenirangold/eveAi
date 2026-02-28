@@ -1,9 +1,10 @@
+import { getLocalStories, saveLocalStories } from "@/lib/database";
 import type { Story } from "@/services/stories";
 import { storiesService } from "@/services/stories";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import React, {
   useCallback,
-  useEffect,
   useImperativeHandle,
   useState,
 } from "react";
@@ -73,27 +74,36 @@ function ReelAvatar({ item, onPress }: { item: Story; onPress: () => void }) {
 }
 
 const Reels = React.forwardRef<ReelsHandle>((_props, ref) => {
-  const [stories, setStories] = useState<Story[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [viewerVisible, setViewerVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const fetchStories = useCallback(async () => {
-    try {
-      const data = await storiesService.getStories();
-      setStories(data);
-    } catch (err) {
-      console.error("Failed to fetch stories:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data: stories = [], isPending: loading } = useQuery({
+    queryKey: ["stories"],
+    queryFn: async () => {
+      const remote = await storiesService.getStories();
+      saveLocalStories(remote);
+      return remote;
+    },
+    placeholderData: () => {
+      try {
+        const cached = getLocalStories();
+        return cached.length > 0 ? cached : undefined;
+      } catch {
+        return undefined;
+      }
+    },
+  });
 
-  useImperativeHandle(ref, () => ({ refetch: fetchStories }), [fetchStories]);
-
-  useEffect(() => {
-    fetchStories();
-  }, [fetchStories]);
+  useImperativeHandle(
+    ref,
+    () => ({
+      refetch: () => {
+        queryClient.invalidateQueries({ queryKey: ["stories"] });
+      },
+    }),
+    [queryClient],
+  );
 
   const openStory = useCallback((index: number) => {
     setSelectedIndex(index);

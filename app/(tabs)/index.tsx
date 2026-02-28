@@ -1,20 +1,19 @@
 import Background from "@/components/BackGround";
 import CustomInput from "@/components/CustomInput";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
-import Reels, { ReelsHandle } from "@/components/reels";
+import Reels from "@/components/reels";
 import ChatRowSkeleton from "@/components/skeleton/ChatRowSkeleton";
 import ChatsHeaderSkeleton from "@/components/skeleton/ChatsHeaderSkeleton";
+import {
+  deleteLocalContact,
+  getLocalContacts,
+  saveLocalContacts,
+} from "@/lib/database";
 import { Contact, contactsService } from "@/services/contacts";
 import { Ionicons } from "@expo/vector-icons";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
-  Animated,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -22,7 +21,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Swipeable } from "react-native-gesture-handler";
+import ReanimatedSwipeable, {
+  type SwipeableMethods,
+} from "react-native-gesture-handler/ReanimatedSwipeable";
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  type SharedValue,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SvgUri } from "react-native-svg";
 
@@ -45,18 +51,22 @@ function getInitials(name: string): string {
 const AVATAR_SIZE = 50;
 const DELETE_WIDTH = 80;
 
-let openSwipeable: Swipeable | null = null;
+let openSwipeable: SwipeableMethods | null = null;
 
-function renderRightActions(
-  _progress: Animated.AnimatedInterpolation<number>,
-  dragX: Animated.AnimatedInterpolation<number>,
-  onDelete: () => void,
-) {
-  const scale = dragX.interpolate({
-    inputRange: [-DELETE_WIDTH, 0],
-    outputRange: [1, 0.4],
-    extrapolate: "clamp",
-  });
+function RightAction({
+  dragX,
+  onDelete,
+}: {
+  dragX: SharedValue<number>;
+  onDelete: () => void;
+}) {
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale: interpolate(dragX.value, [-DELETE_WIDTH, 0], [1, 0.4], "clamp"),
+      },
+    ],
+  }));
 
   return (
     <TouchableOpacity
@@ -64,9 +74,9 @@ function renderRightActions(
       onPress={onDelete}
       style={styles.deleteAction}
     >
-      <Animated.View style={{ transform: [{ scale }], alignItems: "center" }}>
+      <Animated.View style={[{ alignItems: "center" }, animStyle]}>
         <Ionicons name="trash-outline" size={22} color="#fff" />
-        <Text style={styles.deleteText}>Delete</Text>
+        <Text style={styles.deleteText}>Remove</Text>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -79,7 +89,7 @@ function ChatRow({
   item: Contact;
   onDelete: (id: string) => void;
 }) {
-  const swipeableRef = useRef<Swipeable>(null);
+  const swipeableRef = useRef<SwipeableMethods>(null);
 
   const handleDelete = useCallback(() => {
     swipeableRef.current?.close();
@@ -94,11 +104,11 @@ function ChatRow({
   }, []);
 
   return (
-    <Swipeable
+    <ReanimatedSwipeable
       ref={swipeableRef}
-      renderRightActions={(progress, dragX) =>
-        renderRightActions(progress, dragX, handleDelete)
-      }
+      renderRightActions={(_progress, dragX) => (
+        <RightAction dragX={dragX} onDelete={handleDelete} />
+      )}
       overshootRight={false}
       rightThreshold={40}
       onSwipeableOpen={onSwipeOpen}
@@ -135,7 +145,7 @@ function ChatRow({
           <Text style={styles.chatTime}>{formatTime(item.addedAt)}</Text>
         </View>
       </TouchableOpacity>
-    </Swipeable>
+    </ReanimatedSwipeable>
   );
 }
 
@@ -163,11 +173,29 @@ function ChatsHeader({
 }
 
 export default function Index() {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const reelsRef = useRef<ReelsHandle>(null);
+
+  const {
+    data: contacts = [],
+    isPending: loading,
+    isFetching,
+  } = useQuery({
+    queryKey: ["contacts"],
+    queryFn: async () => {
+      const remote = await contactsService.getContacts();
+      saveLocalContacts(remote);
+      return remote;
+    },
+    placeholderData: () => {
+      try {
+        const cached = getLocalContacts();
+        return cached.length > 0 ? cached : undefined;
+      } catch {
+        return undefined;
+      }
+    },
+  });
 
   const filteredContacts = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -175,31 +203,32 @@ export default function Index() {
     return contacts.filter((c) => c.name.toLowerCase().includes(q));
   }, [contacts, search]);
 
-  const fetchContacts = useCallback(async () => {
-    try {
-      const data = await contactsService.getContacts();
-      setContacts(data);
-    } catch (err) {
-      console.error("Failed to fetch contacts:", err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  const deleteContact = useCallback(
+    async (id: string) => {
+      queryClient.setQueryData<Contact[]>(["contacts"], (old) =>
+        old ? old.filter((c) => c.id !== id) : [],
+      );
+      try {
+        deleteLocalContact(id);
+      } catch (err) {
+        console.error("Failed to delete local contact:", err);
+      }
 
-  useEffect(() => {
-    fetchContacts();
-  }, [fetchContacts]);
-
-  const deleteContact = useCallback((id: string) => {
-    setContacts((prev) => prev.filter((c) => c.id !== id));
-  }, []);
+      try {
+        await contactsService.deleteContact(id);
+        queryClient.invalidateQueries({ queryKey: ["stories"] });
+      } catch (err) {
+        console.error("Failed to delete remote contact:", err);
+        queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      }
+    },
+    [queryClient],
+  );
 
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    reelsRef.current?.refetch();
-    fetchContacts();
-  }, [fetchContacts]);
+    queryClient.invalidateQueries({ queryKey: ["contacts"] });
+    queryClient.invalidateQueries({ queryKey: ["stories"] });
+  }, [queryClient]);
 
   return (
     <Background>
@@ -207,14 +236,14 @@ export default function Index() {
         <VerifyEmailBanner />
         {loading ? (
           <View>
-            <Reels ref={reelsRef} />
+            <Reels />
             <ChatsHeaderSkeleton />
             <ChatRowSkeleton />
           </View>
         ) : (
           <>
             <View>
-              <Reels ref={reelsRef} />
+              <Reels />
               <ChatsHeader search={search} onSearchChange={setSearch} />
             </View>
             <FlatList
@@ -227,7 +256,7 @@ export default function Index() {
               showsVerticalScrollIndicator={false}
               refreshControl={
                 <RefreshControl
-                  refreshing={refreshing}
+                  refreshing={isFetching && !loading}
                   onRefresh={onRefresh}
                   tintColor="#6C56FF"
                   colors={["#6C56FF"]}
@@ -290,7 +319,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 0.5,
     borderBottomColor: "#1A1354",
-    backgroundColor: "#0D0B1E",
+    // backgroundColor: "#0D0B1E",
   },
   avatarContainer: {
     position: "relative",

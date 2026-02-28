@@ -14,9 +14,31 @@ interface ApiResponse<T> {
   data: T;
 }
 
+export interface AvailableContact {
+  id: string;
+  name: string;
+  slug: string;
+  avatar: string;
+  bio: string;
+}
+
 export const contactsService = {
   getContacts: async (): Promise<Contact[]> => {
     const { data } = await api.get<ApiResponse<Contact[]>>("/contacts");
     return data.data;
+  },
+
+  getAvailableContacts: async (): Promise<AvailableContact[]> => {
+    const { data } =
+      await api.get<ApiResponse<AvailableContact[]>>("/contacts/available");
+    return data.data;
+  },
+
+  addContact: async (contactId: string): Promise<void> => {
+    await api.post("/contacts", { contactId });
+  },
+
+  deleteContact: async (contactId: string): Promise<void> => {
+    await api.delete(`/contacts/${contactId}`);
   },
 };

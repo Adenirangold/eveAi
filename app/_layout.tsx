@@ -1,4 +1,5 @@
 import { CustomToast } from "@/components/Toast";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import {
   DarkTheme,
   DefaultTheme,
@@ -11,6 +12,7 @@ import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useProfile } from "@/hooks/useAuth";
+import { initDatabase } from "@/lib/database";
 import QueryProvider from "@/providers/QueryProvider";
 import { useAuthStore } from "@/store/auth-store";
 import { useFonts } from "expo-font";
@@ -43,6 +45,7 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
+    initDatabase();
     hydrate();
   }, [hydrate]);
 
@@ -51,25 +54,33 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryProvider>
-        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-          {isReady ? (
-            <>
-              <ProfileHydrator />
-              <Stack>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-
-                <Stack.Screen name="all-chat" options={{ headerShown: false }} />
-              </Stack>
-            </>
-          ) : (
-            <SplashScreenComponent
-              onAnimationComplete={() => setAnimationDone(true)}
-            />
-          )}
-          <StatusBar style="auto" />
-          <CustomToast />
-        </ThemeProvider>
+        <BottomSheetModalProvider>
+          <ThemeProvider
+            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+          >
+            {isReady ? (
+              <>
+                <ProfileHydrator />
+                <Stack>
+                  <Stack.Screen
+                    name="(tabs)"
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="(auth)"
+                    options={{ headerShown: false }}
+                  />
+                </Stack>
+              </>
+            ) : (
+              <SplashScreenComponent
+                onAnimationComplete={() => setAnimationDone(true)}
+              />
+            )}
+            <StatusBar style="auto" />
+            <CustomToast />
+          </ThemeProvider>
+        </BottomSheetModalProvider>
       </QueryProvider>
     </GestureHandlerRootView>
   );
