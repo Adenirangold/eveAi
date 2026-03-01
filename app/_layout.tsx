@@ -12,7 +12,6 @@ import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useProfile } from "@/hooks/useAuth";
-import { initDatabase } from "@/lib/database";
 import QueryProvider from "@/providers/QueryProvider";
 import { useAuthStore } from "@/store/auth-store";
 import { useFonts } from "expo-font";
@@ -45,7 +44,6 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    initDatabase();
     hydrate();
   }, [hydrate]);
 

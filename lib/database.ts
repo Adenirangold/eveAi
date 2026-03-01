@@ -3,13 +3,26 @@ import type { AvailableContact, Contact } from "@/services/contacts";
 import type { Story } from "@/services/stories";
 import { type SQLiteDatabase, openDatabaseSync } from "expo-sqlite";
 
-// ── Lazy singleton ───────────────────────────────────
+// ── Per-user database singleton ──────────────────────
 
 let _db: SQLiteDatabase | null = null;
+let _currentUserId: string | null = null;
 
-function getDb(): SQLiteDatabase {
+export function setDatabaseUser(userId: string | null): void {
+  if (userId === _currentUserId) return;
+  if (_db) {
+    _db.closeSync();
+    _db = null;
+  }
+  _currentUserId = userId;
+  if (userId) getDb();
+}
+
+function getDb(): SQLiteDatabase | null {
+  if (!_currentUserId) return null;
+
   if (!_db) {
-    _db = openDatabaseSync("eveai.db");
+    _db = openDatabaseSync(`eveai-${_currentUserId}.db`);
 
     _db.execSync(`
       CREATE TABLE IF NOT EXISTS contacts (
@@ -66,14 +79,11 @@ function getDb(): SQLiteDatabase {
   return _db;
 }
 
-export function initDatabase(): void {
-  getDb();
-}
-
 // ── Contacts ─────────────────────────────────────────
 
 export function getLocalContacts(): Contact[] {
   const db = getDb();
+  if (!db) return [];
   return db.getAllSync<Contact>(
     "SELECT * FROM contacts ORDER BY addedAt DESC",
   );
@@ -81,6 +91,7 @@ export function getLocalContacts(): Contact[] {
 
 export function saveLocalContacts(contacts: Contact[]): void {
   const db = getDb();
+  if (!db) return;
   db.withTransactionSync(() => {
     db.runSync("DELETE FROM contacts");
     for (const c of contacts) {
@@ -94,6 +105,7 @@ export function saveLocalContacts(contacts: Contact[]): void {
 
 export function getLocalContactById(id: string): Contact | null {
   const db = getDb();
+  if (!db) return null;
   return (
     db.getFirstSync<Contact>("SELECT * FROM contacts WHERE id = ?", [id]) ??
     null
@@ -102,6 +114,7 @@ export function getLocalContactById(id: string): Contact | null {
 
 export function deleteLocalContact(id: string): void {
   const db = getDb();
+  if (!db) return;
   db.runSync("DELETE FROM contacts WHERE id = ?", [id]);
 }
 
@@ -109,6 +122,7 @@ export function deleteLocalContact(id: string): void {
 
 export function getLocalAvailableContacts(): AvailableContact[] {
   const db = getDb();
+  if (!db) return [];
   return db.getAllSync<AvailableContact>(
     "SELECT * FROM available_contacts ORDER BY name ASC",
   );
@@ -116,6 +130,7 @@ export function getLocalAvailableContacts(): AvailableContact[] {
 
 export function saveLocalAvailableContacts(contacts: AvailableContact[]): void {
   const db = getDb();
+  if (!db) return;
   db.withTransactionSync(() => {
     db.runSync("DELETE FROM available_contacts");
     for (const c of contacts) {
@@ -159,6 +174,7 @@ function rowToStory(row: StoryRow): Story {
 
 export function getLocalStories(): Story[] {
   const db = getDb();
+  if (!db) return [];
   return db
     .getAllSync<StoryRow>("SELECT * FROM stories ORDER BY createdAt DESC")
     .map(rowToStory);
@@ -166,6 +182,7 @@ export function getLocalStories(): Story[] {
 
 export function saveLocalStories(stories: Story[]): void {
   const db = getDb();
+  if (!db) return;
   db.withTransactionSync(() => {
     db.runSync("DELETE FROM stories");
     for (const s of stories) {
@@ -191,6 +208,7 @@ export function saveLocalStories(stories: Story[]): void {
 
 export function getLocalMessages(contactId: string): ChatMessage[] {
   const db = getDb();
+  if (!db) return [];
   return db.getAllSync<ChatMessage>(
     "SELECT * FROM messages WHERE contactId = ? ORDER BY createdAt ASC",
     [contactId],
@@ -200,6 +218,7 @@ export function getLocalMessages(contactId: string): ChatMessage[] {
 export function upsertLocalMessages(messages: ChatMessage[]): void {
   if (messages.length === 0) return;
   const db = getDb();
+  if (!db) return;
   db.withTransactionSync(() => {
     for (const m of messages) {
       db.runSync(
@@ -224,6 +243,7 @@ export function upsertLocalMessages(messages: ChatMessage[]): void {
 
 export function clearDatabase(): void {
   const db = getDb();
+  if (!db) return;
   db.withTransactionSync(() => {
     db.runSync("DELETE FROM contacts");
     db.runSync("DELETE FROM available_contacts");

@@ -1,3 +1,4 @@
+import { setDatabaseUser } from "@/lib/database";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 
@@ -39,9 +40,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setAuth: async ({ user, accessToken, refreshToken }) => {
     await SecureStore.setItemAsync("accessToken", accessToken);
+    await SecureStore.setItemAsync("userId", user.id);
     if (refreshToken) {
       await SecureStore.setItemAsync("refreshToken", refreshToken);
     }
+    setDatabaseUser(user.id);
     set({
       user,
       accessToken,
@@ -50,11 +53,16 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
   },
 
-  setUser: (user) => set({ user }),
+  setUser: (user) => {
+    setDatabaseUser(user.id);
+    set({ user });
+  },
 
   logout: async () => {
+    setDatabaseUser(null);
     await SecureStore.deleteItemAsync("accessToken");
     await SecureStore.deleteItemAsync("refreshToken");
+    await SecureStore.deleteItemAsync("userId");
     set({
       user: null,
       accessToken: null,
@@ -65,12 +73,15 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   hydrate: async () => {
     try {
-      const [accessToken, refreshToken, onboarding] = await Promise.all([
-        SecureStore.getItemAsync("accessToken"),
-        SecureStore.getItemAsync("refreshToken"),
-        SecureStore.getItemAsync("hasSeenOnboarding"),
-      ]);
+      const [accessToken, refreshToken, onboarding, userId] =
+        await Promise.all([
+          SecureStore.getItemAsync("accessToken"),
+          SecureStore.getItemAsync("refreshToken"),
+          SecureStore.getItemAsync("hasSeenOnboarding"),
+          SecureStore.getItemAsync("userId"),
+        ]);
       if (accessToken) {
+        if (userId) setDatabaseUser(userId);
         set({ accessToken, refreshToken, isAuthenticated: true });
       }
       set({ hasSeenOnboarding: onboarding === "true" });
