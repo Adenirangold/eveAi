@@ -14,7 +14,8 @@ import { Contact, contactsService } from "@/services/contacts";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import { registerAndSyncPushToken } from "@/utils/notification";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   RefreshControl,
@@ -32,7 +33,7 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { SvgUri } from "react-native-svg";
+import { Image as ExpoImage } from "expo-image";
 
 function formatTime(dateStr: string): string {
   const date = new Date(dateStr);
@@ -124,13 +125,11 @@ function ChatRow({
       <TouchableOpacity activeOpacity={0.7} style={styles.chatRow} onPress={handlePress}>
         <View style={styles.avatarContainer}>
           {item.avatar ? (
-            <View style={styles.chatAvatar}>
-              <SvgUri
-                uri={item.avatar}
-                width={AVATAR_SIZE}
-                height={AVATAR_SIZE}
-              />
-            </View>
+            <ExpoImage
+              source={item.avatar}
+              style={styles.chatAvatar}
+              contentFit="cover"
+            />
           ) : (
             <View style={styles.chatInitials}>
               <Text style={styles.chatInitialsText}>
@@ -201,6 +200,10 @@ export default function Index() {
   const router = useRouter();
   const { openAddContacts } = useAddContactsSheet();
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    registerAndSyncPushToken();
+  }, []);
 
   const {
     data: contacts = [],
@@ -419,7 +422,6 @@ const styles = StyleSheet.create({
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
     backgroundColor: "#1C1C2E",
-    overflow: "hidden",
   },
   chatInitials: {
     width: AVATAR_SIZE,

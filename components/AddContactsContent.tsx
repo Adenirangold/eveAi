@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { SvgUri } from "react-native-svg";
+import { Image as ExpoImage } from "expo-image";
 import ContactSkeleton from "./skeleton/ContactSkeleton";
 
 const AVATAR_SIZE = 50;
@@ -44,13 +44,11 @@ function ContactRow({
     <View style={styles.row}>
       <View style={styles.avatarContainer}>
         {item.avatar ? (
-          <View style={styles.avatar}>
-            <SvgUri
-              uri={item.avatar}
-              width={AVATAR_SIZE}
-              height={AVATAR_SIZE}
-            />
-          </View>
+          <ExpoImage
+            source={item.avatar}
+            style={styles.avatar}
+            contentFit="cover"
+          />
         ) : (
           <View style={styles.initials}>
             <Text style={styles.initialsText}>{getInitials(item.name)}</Text>
@@ -224,7 +222,6 @@ const styles = StyleSheet.create({
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
     backgroundColor: "#1C1C2E",
-    overflow: "hidden",
   },
   initials: {
     width: AVATAR_SIZE,

@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SvgUri } from "react-native-svg";
+import { Image as ExpoImage } from "expo-image";
 
 const AVATAR_SIZE = 100;
 
@@ -65,13 +65,11 @@ export default function ContactProfileScreen() {
         <View style={styles.content}>
           <View style={styles.avatarSection}>
             {contact.avatar ? (
-              <View style={styles.avatar}>
-                <SvgUri
-                  uri={contact.avatar}
-                  width={AVATAR_SIZE}
-                  height={AVATAR_SIZE}
-                />
-              </View>
+              <ExpoImage
+                source={contact.avatar}
+                style={styles.avatar}
+                contentFit="cover"
+              />
             ) : (
               <View style={styles.avatarFallback}>
                 <Text style={styles.avatarInitials}>
@@ -143,7 +141,6 @@ const styles = StyleSheet.create({
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
     backgroundColor: "#1C1C2E",
-    overflow: "hidden",
     marginBottom: 16,
     borderWidth: 3,
     borderColor: "#6C56FF",

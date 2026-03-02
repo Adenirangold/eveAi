@@ -1,7 +1,9 @@
 import Background from "@/components/BackGround";
+import CustomSwitch from "@/components/CustomSwitch";
 import FormError from "@/components/FormError";
 import icons from "@/constants/icons";
 import { useLogout, useProfile, useUpdateUsername } from "@/hooks/useAuth";
+import { useNotificationToggle } from "@/hooks/useNotifications";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -43,6 +45,7 @@ export default function Profile() {
   const updateUsername = useUpdateUsername();
   const logout = useLogout();
 
+  const notifications = useNotificationToggle();
   const [username, setUsername] = useState("");
   const [isEditing, setIsEditing] = useState(false);
 
@@ -166,6 +169,36 @@ export default function Profile() {
                 label="Member Since"
                 value={formatDate(profile?.createdAt)}
               />
+            </View>
+
+            {/* Notifications */}
+            <View className="bg-[#1D1B31] rounded-2xl overflow-hidden">
+              <View className="flex-row items-center px-5 py-3">
+                <View className="w-9 h-9 rounded-xl bg-[#6C56FF]/10 items-center justify-center mr-4">
+                  <Ionicons
+                    name="notifications-outline"
+                    size={18}
+                    color="#6C56FF"
+                  />
+                </View>
+                <Text className="font-OutfitMedium text-sm text-[#999] flex-1">
+                  Push Notifications
+                </Text>
+                <CustomSwitch
+                  value={notifications.isEnabled}
+                  onValueChange={notifications.toggle}
+                  disabled={notifications.isLoading}
+                  trackColorFalse="#2D2B45"
+                  trackColorTrue="#6C56FF"
+                  scale={0.8}
+                />
+              </View>
+              <View className="px-5 pb-4">
+                <Text className="font-Outfit text-sm text-typo-neutralLight">
+                  This enables you to receive notifications when your favourite
+                  Bible character sends a message.
+                </Text>
+              </View>
             </View>
 
             {/* Logout */}

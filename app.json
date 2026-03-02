@@ -27,9 +27,9 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/background.png",
-          "backgroundColor": "#1D1B31",
-          "resizeMode": "cover"
+          "image": "./assets/images/icon.png",
+          "backgroundColor": "#6C56FF",
+          "resizeMode": "contain"
         }
       ],
       "expo-font",
@@ -40,6 +40,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "df4b1695-94d2-4d2c-bb61-734f974018b7"
+      }
+    },
+    "owner": "adenirangold"
   }
 }

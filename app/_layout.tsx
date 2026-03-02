@@ -15,9 +15,11 @@ import { useProfile } from "@/hooks/useAuth";
 import QueryProvider from "@/providers/QueryProvider";
 import { useAuthStore } from "@/store/auth-store";
 import { useFonts } from "expo-font";
-import { useEffect, useState } from "react";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
 import "../global.css";
-import SplashScreenComponent from "./SplashScreen";
+
+SplashScreen.preventAutoHideAsync();
 
 function ProfileHydrator() {
   useProfile();
@@ -32,8 +34,6 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const hydrate = useAuthStore((s) => s.hydrate);
 
-  const [animationDone, setAnimationDone] = useState(false);
-
   const [loaded, error] = useFonts({
     "Outfit-Bold": require("@/assets/fonts/Outfit-Bold.ttf"),
     "Outfit-Light": require("../assets/fonts/Outfit-Light.ttf"),
@@ -47,7 +47,13 @@ export default function RootLayout() {
     hydrate();
   }, [hydrate]);
 
-  const isReady = (loaded || error) && animationDone;
+  useEffect(() => {
+    if (loaded || error) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded, error]);
+
+  const isReady = loaded || error;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -56,7 +62,7 @@ export default function RootLayout() {
           <ThemeProvider
             value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
           >
-            {isReady ? (
+            {isReady && (
               <>
                 <ProfileHydrator />
                 <Stack>
@@ -84,10 +90,6 @@ export default function RootLayout() {
                   />
                 </Stack>
               </>
-            ) : (
-              <SplashScreenComponent
-                onAnimationComplete={() => setAnimationDone(true)}
-              />
             )}
             <StatusBar style="auto" />
             <CustomToast />

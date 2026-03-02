@@ -25,7 +25,7 @@ import {
   type IMessage,
 } from "react-native-gifted-chat";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SvgUri } from "react-native-svg";
+import { Image as ExpoImage } from "expo-image";
 
 const BUBBLE_AVATAR_SIZE = 30;
 
@@ -217,13 +217,11 @@ export default function ChatScreen() {
 
       if (avatarUri) {
         return (
-          <View style={styles.bubbleAvatar}>
-            <SvgUri
-              uri={avatarUri}
-              width={BUBBLE_AVATAR_SIZE}
-              height={BUBBLE_AVATAR_SIZE}
-            />
-          </View>
+          <ExpoImage
+            source={avatarUri}
+            style={styles.bubbleAvatar}
+            contentFit="cover"
+          />
         );
       }
 
@@ -301,13 +299,11 @@ export default function ChatScreen() {
             onPress={() => router.push(`/contact/${id}`)}
           >
             {contact.avatar ? (
-              <View style={styles.avatar}>
-                <SvgUri
-                  uri={contact.avatar}
-                  width={AVATAR_SIZE}
-                  height={AVATAR_SIZE}
-                />
-              </View>
+              <ExpoImage
+                source={contact.avatar}
+                style={styles.avatar}
+                contentFit="cover"
+              />
             ) : (
               <View style={styles.initialsAvatar}>
                 <Text style={styles.initialsText}>
@@ -422,7 +418,6 @@ const styles = StyleSheet.create({
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
     backgroundColor: "#1C1C2E",
-    overflow: "hidden",
   },
   initialsAvatar: {
     width: AVATAR_SIZE,
@@ -489,7 +484,6 @@ const styles = StyleSheet.create({
     height: BUBBLE_AVATAR_SIZE,
     borderRadius: BUBBLE_AVATAR_SIZE / 2,
     backgroundColor: "#1C1C2E",
-    overflow: "hidden",
     marginRight: 4,
     marginBottom: 2,
   },

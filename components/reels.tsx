@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SvgUri } from "react-native-svg";
+import { Image as ExpoImage } from "expo-image";
 import ReelsSkeleton from "./skeleton/ReelsSkeleton";
 import StoryViewer from "./StoryViewer";
 
@@ -50,13 +50,11 @@ function ReelAvatar({ item, onPress }: { item: Story; onPress: () => void }) {
       >
         <View style={styles.ringInner}>
           {item.contact.avatar ? (
-            <View style={styles.avatarCircle}>
-              <SvgUri
-                uri={item.contact.avatar}
-                width={AVATAR_SIZE}
-                height={AVATAR_SIZE}
-              />
-            </View>
+            <ExpoImage
+              source={item.contact.avatar}
+              style={styles.avatarCircle}
+              contentFit="cover"
+            />
           ) : (
             <View style={styles.initialsCircle}>
               <Text style={styles.initialsText}>
@@ -176,7 +174,6 @@ const styles = StyleSheet.create({
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
     backgroundColor: "#1C1C2E",
-    overflow: "hidden",
   },
   initialsCircle: {
     width: AVATAR_SIZE,
