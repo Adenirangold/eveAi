@@ -77,6 +77,7 @@ export default function Profile() {
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
 
   useEffect(() => {
     if (profile?.username) {
@@ -390,6 +391,26 @@ export default function Profile() {
                 Log out
               </Text>
             </Pressable>
+
+            {/* Delete Account */}
+            <Pressable
+              onPress={() => setIsDeleteModalVisible(true)}
+              className="rounded-2xl flex-row items-center px-5 py-4 mt-3"
+              style={[
+                { backgroundColor: cardBg },
+                cardBorder,
+                ({ pressed }: { pressed: boolean }) => ({
+                  opacity: pressed ? 0.7 : 1,
+                }),
+              ]}
+            >
+              <View className="w-9 h-9 rounded-xl bg-[#DC2626]/10 items-center justify-center mr-4">
+                <Ionicons name="trash-outline" size={18} color="#DC2626" />
+              </View>
+              <Text className="font-OutfitMedium text-base text-[#DC2626] flex-1">
+                Request Account Deletion
+              </Text>
+            </Pressable>
           </View>
         </ScrollView>
 
@@ -667,6 +688,78 @@ export default function Profile() {
                   </Pressable>
                 </>
               )}
+            </Pressable>
+          </Pressable>
+        </Modal>
+        {/* Delete Account Modal */}
+        <Modal
+          visible={isDeleteModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setIsDeleteModalVisible(false)}
+        >
+          <Pressable
+            className="flex-1 items-center justify-center"
+            style={{
+              backgroundColor: isDark
+                ? "rgba(0,0,0,0.6)"
+                : "rgba(0,0,0,0.3)",
+            }}
+            onPress={() => setIsDeleteModalVisible(false)}
+          >
+            <Pressable
+              className="rounded-3xl w-[85%] max-w-[340px] p-6"
+              style={{ backgroundColor: modalBg }}
+              onPress={() => {}}
+            >
+              <View className="items-center mb-4">
+                <View className="w-14 h-14 rounded-full bg-[#DC2626]/10 items-center justify-center">
+                  <Ionicons name="warning" size={30} color="#DC2626" />
+                </View>
+              </View>
+
+              <Text
+                className="font-OutfitSemiBold text-xl text-center mb-2"
+                style={{ color: valueColor }}
+              >
+                Delete Account?
+              </Text>
+              <Text
+                className="font-Outfit text-sm text-center mb-6"
+                style={{ color: subtextColor }}
+              >
+                Are you sure you want to delete your account? This action cannot
+                be undone and all your data will be permanently removed.
+              </Text>
+
+              <Pressable
+                onPress={() => {
+                  setIsDeleteModalVisible(false);
+                }}
+                className="rounded-xl py-3.5 items-center"
+                style={[
+                  { backgroundColor: "#DC2626" },
+                  ({ pressed }: { pressed: boolean }) => ({
+                    opacity: pressed ? 0.8 : 1,
+                  }),
+                ]}
+              >
+                <Text className="font-OutfitSemiBold text-base text-white">
+                  Yes, Delete My Account
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => setIsDeleteModalVisible(false)}
+                className="mt-3 py-2 items-center"
+              >
+                <Text
+                  className="font-OutfitMedium text-sm"
+                  style={{ color: subtextColor }}
+                >
+                  Cancel
+                </Text>
+              </Pressable>
             </Pressable>
           </Pressable>
         </Modal>

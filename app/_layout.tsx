@@ -17,7 +17,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { useThemeStore } from "@/store/theme-store";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import "../global.css";
 
 SplashScreen.preventAutoHideAsync();
@@ -57,18 +57,44 @@ export default function RootLayout() {
   }, [loaded, error]);
 
   const isReady = loaded || error;
+  const isDark = colorScheme === "dark";
+  const bgColor = isDark ? "#0A0A0B" : "#F5F3FF";
+
+  const theme = useMemo(
+    () =>
+      isDark
+        ? {
+            ...DarkTheme,
+            colors: {
+              ...DarkTheme.colors,
+              background: bgColor,
+              card: bgColor,
+            },
+          }
+        : {
+            ...DefaultTheme,
+            colors: {
+              ...DefaultTheme.colors,
+              background: bgColor,
+              card: bgColor,
+            },
+          },
+    [isDark, bgColor],
+  );
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: bgColor }}>
       <QueryProvider>
         <BottomSheetModalProvider>
-          <ThemeProvider
-            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-          >
+          <ThemeProvider value={theme}>
             {isReady && (
               <>
                 <ProfileHydrator />
-                <Stack>
+                <Stack
+                  screenOptions={{
+                    contentStyle: { backgroundColor: bgColor },
+                  }}
+                >
                   <Stack.Screen
                     name="(tabs)"
                     options={{ headerShown: false }}
@@ -94,7 +120,7 @@ export default function RootLayout() {
                 </Stack>
               </>
             )}
-            <StatusBar style="auto" />
+            <StatusBar style={isDark ? "light" : "dark"} />
             <CustomToast />
           </ThemeProvider>
         </BottomSheetModalProvider>

@@ -3,9 +3,17 @@ import { ChatMessage, chatService } from "@/services/chat";
 import { Contact } from "@/services/contacts";
 import { useAuthStore } from "@/store/auth-store";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Image as ExpoImage } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Animated,
   KeyboardAvoidingView,
@@ -26,9 +34,11 @@ import {
   type IMessage,
 } from "react-native-gifted-chat";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Image as ExpoImage } from "expo-image";
 
-const BUBBLE_AVATAR_SIZE = 30;
+const DRAFT_KEY_PREFIX = "chat_draft_";
+const getDraftKey = (chatId: string) => `${DRAFT_KEY_PREFIX}${chatId}`;
+
+const BUBBLE_AVATAR_SIZE = 25;
 
 const AVATAR_SIZE = 38;
 
@@ -87,7 +97,11 @@ const TypingIndicator = React.memo(() => {
         ]),
       );
 
-    const anims = [animateDot(dot1, 0), animateDot(dot2, 200), animateDot(dot3, 400)];
+    const anims = [
+      animateDot(dot1, 0),
+      animateDot(dot2, 200),
+      animateDot(dot3, 400),
+    ];
     anims.forEach((a) => a.start());
     return () => {
       anims.forEach((a) => a.stop());
@@ -126,6 +140,27 @@ export default function ChatScreen() {
   const [inputText, setInputText] = useState("");
   const inputRef = useRef<TextInput>(null);
 
+  useEffect(() => {
+    if (!id) return;
+    AsyncStorage.getItem(getDraftKey(id)).then((draft) => {
+      if (draft) setInputText(draft);
+    });
+  }, [id]);
+
+  const handleTextChange = useCallback(
+    (text: string) => {
+      setInputText(text);
+      if (id) {
+        if (text) {
+          AsyncStorage.setItem(getDraftKey(id), text);
+        } else {
+          AsyncStorage.removeItem(getDraftKey(id));
+        }
+      }
+    },
+    [id],
+  );
+
   const contact = useMemo(() => {
     const contacts = queryClient.getQueryData<Contact[]>(["contacts"]);
     return contacts?.find((c) => c.id === id) ?? null;
@@ -155,6 +190,7 @@ export default function ChatScreen() {
     if (!id || !text) return;
 
     setInputText("");
+    if (id) AsyncStorage.removeItem(getDraftKey(id));
     setIsSending(true);
 
     await queryClient.cancelQueries({ queryKey: ["chat", id] });
@@ -286,14 +322,11 @@ export default function ChatScreen() {
         >
           <TextInput
             ref={inputRef}
-            style={[
-              styles.textInput,
-              { color: isDark ? "#fff" : "#1A1A2E" },
-            ]}
+            style={[styles.textInput, { color: isDark ? "#fff" : "#1A1A2E" }]}
             placeholder="Write your message"
             placeholderTextColor={isDark ? "#666" : "#9CA3AF"}
             value={inputText}
-            onChangeText={setInputText}
+            onChangeText={handleTextChange}
             multiline
             blurOnSubmit={false}
             returnKeyType="default"
@@ -311,7 +344,7 @@ export default function ChatScreen() {
         </View>
       </View>
     );
-  }, [inputText, handleSend, insets.bottom, isDark]);
+  }, [inputText, handleSend, handleTextChange, insets.bottom, isDark]);
 
   const renderFooter = useCallback(() => {
     if (!isSending) return null;
@@ -327,10 +360,7 @@ export default function ChatScreen() {
 
   return (
     <View
-      style={[
-        styles.safe,
-        { backgroundColor: isDark ? "#0A0A0B" : "#F5F3FF" },
-      ]}
+      style={[styles.safe, { backgroundColor: isDark ? "#0A0A0B" : "#F5F3FF" }]}
     >
       <View
         style={[
@@ -469,13 +499,15 @@ export default function ChatScreen() {
           renderFooter={renderFooter}
           renderAvatar={renderAvatar}
           isScrollToBottomEnabled
-          scrollToBottomStyle={[
-            styles.scrollToBottom,
-            {
-              backgroundColor: isDark ? "#1C1C2E" : "#FFFFFF",
-              borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
-            },
-          ]}
+          scrollToBottomComponent={() => (
+            <Ionicons name="chevron-down" size={22} color={"#1A1A2E"} />
+          )}
+          scrollToBottomStyle={{
+            backgroundColor: "transparent",
+            borderWidth: 0,
+            elevation: 0,
+            shadowOpacity: 0,
+          }}
           keyboardAvoidingViewProps={{ enabled: false }}
           listProps={{
             keyboardDismissMode: "on-drag" as const,

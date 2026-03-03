@@ -231,12 +231,30 @@ function ChatsHeader({
           Chats
         </Text>
         <TouchableOpacity
-          style={styles.addCharacterButton}
+          style={[
+            styles.addCharacterButton,
+            {
+              backgroundColor: isDark
+                ? "rgba(255,255,255,0.08)"
+                : "rgba(108,86,255,0.1)",
+            },
+          ]}
           activeOpacity={0.7}
           onPress={onAddPress}
         >
-          <Ionicons name="person-add-outline" size={18} color="#fff" />
-          <Text style={styles.addCharacterText}>Add</Text>
+          <Ionicons
+            name="person-add-outline"
+            size={18}
+            color={isDark ? "#fff" : "#6C56FF"}
+          />
+          <Text
+            style={[
+              styles.addCharacterText,
+              { color: isDark ? "#fff" : "#6C56FF" },
+            ]}
+          >
+            Add
+          </Text>
         </TouchableOpacity>
       </View>
       {showSearch && (
@@ -458,13 +476,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#6C56FF",
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
   },
   addCharacterText: {
-    color: "#fff",
     fontSize: 13,
     fontWeight: "600",
     fontFamily: "Outfit-Medium",
