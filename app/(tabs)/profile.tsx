@@ -148,8 +148,10 @@ export default function Profile() {
 
   const PRIVACY_URL = "https://eve-ai.api.openhvn.dev/privacy";
 
-  const cardBg = isDark ? "#1D1B31" : "#FFFFFF";
-  const cardBorder = isDark ? undefined : { borderWidth: 1, borderColor: "#E0DCF0" };
+  const cardBg = isDark ? "#1F1D35" : "#FFFFFF";
+  const cardBorder = isDark
+    ? { borderWidth: 1, borderColor: "#2D2B4A" }
+    : { borderWidth: 1, borderColor: "#E0DCF0" };
   const labelColor = isDark ? "#999" : "#6B7280";
   const valueColor = isDark ? "#fff" : "#1A1A2E";
   const separatorColor = isDark ? "#2D2B45" : "#E0DCF0";
@@ -241,7 +243,7 @@ export default function Profile() {
           <View className="px-5 gap-3">
             {/* Account Status */}
             <View
-              className="rounded-2xl overflow-hidden"
+              className="rounded-2xl"
               style={[{ backgroundColor: cardBg }, cardBorder]}
             >
               <InfoRow
@@ -289,7 +291,7 @@ export default function Profile() {
 
             {/* Notifications */}
             <View
-              className="rounded-2xl overflow-hidden"
+              className="rounded-2xl"
               style={[{ backgroundColor: cardBg }, cardBorder]}
             >
               <View className="flex-row items-center px-5 py-3">
@@ -328,7 +330,7 @@ export default function Profile() {
 
             {/* Security & Privacy */}
             <View
-              className="rounded-2xl overflow-hidden"
+              className="rounded-2xl"
               style={[{ backgroundColor: cardBg }, cardBorder]}
             >
               <Pressable
