@@ -2,6 +2,7 @@ import { useAddContactsSheet } from "@/app/(tabs)/_layout";
 import Background from "@/components/BackGround";
 import CustomInput from "@/components/CustomInput";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import Reels from "@/components/reels";
 import ChatRowSkeleton from "@/components/skeleton/ChatRowSkeleton";
 import ChatsHeaderSkeleton from "@/components/skeleton/ChatsHeaderSkeleton";
@@ -11,11 +12,18 @@ import {
   saveLocalContacts,
 } from "@/lib/database";
 import { Contact, contactsService } from "@/services/contacts";
+import { registerAndSyncPushToken } from "@/utils/notification";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
-import { registerAndSyncPushToken } from "@/utils/notification";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   FlatList,
   RefreshControl,
@@ -33,7 +41,6 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Image as ExpoImage } from "expo-image";
 
 function formatTime(dateStr: string): string {
   const date = new Date(dateStr);
@@ -95,6 +102,7 @@ function ChatRow({
   onPress: (id: string) => void;
 }) {
   const swipeableRef = useRef<SwipeableMethods>(null);
+  const isDark = useColorScheme() === "dark";
 
   const handleDelete = useCallback(() => {
     swipeableRef.current?.close();
@@ -122,17 +130,40 @@ function ChatRow({
       rightThreshold={40}
       onSwipeableOpen={onSwipeOpen}
     >
-      <TouchableOpacity activeOpacity={0.7} style={styles.chatRow} onPress={handlePress}>
+      <TouchableOpacity
+        activeOpacity={0.7}
+        style={[
+          styles.chatRow,
+          {
+            borderBottomColor: isDark ? "#1A1354" : "rgba(0,0,0,0.06)",
+            borderBottomWidth: isDark ? 0.17 : 0.8,
+          },
+        ]}
+        onPress={handlePress}
+      >
         <View style={styles.avatarContainer}>
           {item.avatar ? (
             <ExpoImage
               source={item.avatar}
-              style={styles.chatAvatar}
+              style={[
+                styles.chatAvatar,
+                { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+              ]}
               contentFit="cover"
             />
           ) : (
-            <View style={styles.chatInitials}>
-              <Text style={styles.chatInitialsText}>
+            <View
+              style={[
+                styles.chatInitials,
+                { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.chatInitialsText,
+                  { color: isDark ? "#fff" : "#6C56FF" },
+                ]}
+              >
                 {getInitials(item.name)}
               </Text>
             </View>
@@ -140,16 +171,35 @@ function ChatRow({
         </View>
 
         <View style={styles.chatMid}>
-          <Text style={styles.chatName} numberOfLines={1}>
+          <Text
+            style={[
+              styles.chatName,
+              { color: isDark ? "#fff" : "#1A1A2E" },
+            ]}
+            numberOfLines={1}
+          >
             {item.name}
           </Text>
-          <Text style={styles.chatMessage} numberOfLines={1}>
+          <Text
+            style={[
+              styles.chatMessage,
+              { color: isDark ? "#888" : "#6B7280" },
+            ]}
+            numberOfLines={1}
+          >
             {item.bio}
           </Text>
         </View>
 
         <View style={styles.chatRight}>
-          <Text style={styles.chatTime}>{formatTime(item.addedAt)}</Text>
+          <Text
+            style={[
+              styles.chatTime,
+              { color: isDark ? "#888" : "#9CA3AF" },
+            ]}
+          >
+            {formatTime(item.addedAt)}
+          </Text>
         </View>
       </TouchableOpacity>
     </ReanimatedSwipeable>
@@ -167,10 +217,19 @@ function ChatsHeader({
   onAddPress: () => void;
   showSearch: boolean;
 }) {
+  const isDark = useColorScheme() === "dark";
+
   return (
     <View style={styles.chatsHeader}>
       <View style={styles.chatsTitleRow}>
-        <Text style={styles.chatsTitle}>Chats</Text>
+        <Text
+          style={[
+            styles.chatsTitle,
+            { color: isDark ? "#fff" : "#1A1A2E" },
+          ]}
+        >
+          Chats
+        </Text>
         <TouchableOpacity
           style={styles.addCharacterButton}
           activeOpacity={0.7}
@@ -186,8 +245,8 @@ function ChatsHeader({
           onChangeText={onSearchChange}
           search
           placeholder="Search"
-          backgroundColor="#1D1B31"
-          borderColor="#262626"
+          backgroundColor={isDark ? "#1D1B31" : "#F0EEF9"}
+          borderColor={isDark ? "#262626" : "#E0DCF0"}
           borderRadius={15}
         />
       )}
@@ -200,6 +259,7 @@ export default function Index() {
   const router = useRouter();
   const { openAddContacts } = useAddContactsSheet();
   const [search, setSearch] = useState("");
+  const isDark = useColorScheme() === "dark";
 
   useEffect(() => {
     registerAndSyncPushToken();
@@ -291,7 +351,11 @@ export default function Index() {
               data={filteredContacts}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
-                <ChatRow item={item} onDelete={deleteContact} onPress={openChat} />
+                <ChatRow
+                  item={item}
+                  onDelete={deleteContact}
+                  onPress={openChat}
+                />
               )}
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
@@ -305,14 +369,29 @@ export default function Index() {
               }
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
-                  <Ionicons name="people-outline" size={48} color="#333" />
-                  <Text style={styles.emptyText}>No characters yet</Text>
+                  <Ionicons
+                    name="people-outline"
+                    size={48}
+                    color={isDark ? "#333" : "#C4B5FD"}
+                  />
+                  <Text
+                    style={[
+                      styles.emptyText,
+                      { color: isDark ? "#888" : "#6B7280" },
+                    ]}
+                  >
+                    No characters yet
+                  </Text>
                   <TouchableOpacity
                     style={styles.emptyAddButton}
                     activeOpacity={0.7}
                     onPress={openAddContacts}
                   >
-                    <Ionicons name="person-add-outline" size={18} color="#fff" />
+                    <Ionicons
+                      name="person-add-outline"
+                      size={18}
+                      color="#fff"
+                    />
                     <Text style={styles.emptyAddText}>Add Character</Text>
                   </TouchableOpacity>
                 </View>
@@ -328,6 +407,7 @@ export default function Index() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
+    paddingTop: 10,
   },
   listContent: {
     paddingBottom: 70,
@@ -338,7 +418,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: {
-    color: "#888",
     fontSize: 15,
     fontFamily: "Outfit-Regular",
     textAlign: "center",
@@ -371,7 +450,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   chatsTitle: {
-    color: "#fff",
     fontSize: 20,
     fontWeight: "700",
     fontFamily: "Outfit-SemiBold",
@@ -411,8 +489,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderBottomWidth: 0.17,
-    borderBottomColor: "#1A1354",
-    // backgroundColor: "#0D0B1E",
   },
   avatarContainer: {
     position: "relative",
@@ -421,18 +497,15 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: "#1C1C2E",
   },
   chatInitials: {
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: "#1C1C2E",
     alignItems: "center",
     justifyContent: "center",
   },
   chatInitialsText: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "600",
     fontFamily: "Outfit-SemiBold",
@@ -443,14 +516,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   chatName: {
-    color: "#fff",
     fontSize: 15,
     fontWeight: "600",
     marginBottom: 3,
     fontFamily: "Outfit-SemiBold",
   },
   chatMessage: {
-    color: "#888",
     fontSize: 13,
     fontFamily: "Outfit-Regular",
   },
@@ -459,7 +530,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   chatTime: {
-    color: "#888",
     fontSize: 12,
     fontFamily: "Outfit-Regular",
   },

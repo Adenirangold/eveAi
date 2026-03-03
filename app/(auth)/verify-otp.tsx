@@ -2,6 +2,7 @@ import BackButton from "@/components/BackButton";
 import Header from "@/components/Header";
 import OTPInput from "@/components/OtpInput";
 import CustomButton from "@/components/custom-button";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useResetPassword } from "@/hooks/useAuth";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -21,6 +22,7 @@ const RESEND_COOLDOWN = 60;
 
 const VerifyOTP = () => {
   const { email } = useLocalSearchParams<{ email: string }>();
+  const isDark = useColorScheme() === "dark";
   const [otp, setOtp] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(RESEND_COOLDOWN);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -93,8 +95,13 @@ const VerifyOTP = () => {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const subtextColor = isDark ? "#E5E5E5" : "#6B7280";
+
   return (
-    <SafeAreaView className="flex-1 bg-[#0A0A0B] px-5">
+    <SafeAreaView
+      className="flex-1 px-5"
+      style={{ backgroundColor: isDark ? "#0A0A0B" : "#F5F3FF" }}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
@@ -112,7 +119,10 @@ const VerifyOTP = () => {
           <OTPInput value={otp} onChange={setOtp} />
 
           <View className="mt-4 flex-row items-center justify-center">
-            <Text className="font-Outfit text-sm text-typo-neutralLight">
+            <Text
+              className="font-Outfit text-sm"
+              style={{ color: subtextColor }}
+            >
               Didn't receive the code?{" "}
             </Text>
             <Pressable

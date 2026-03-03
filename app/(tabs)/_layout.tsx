@@ -3,6 +3,7 @@ import CustomBottomSheet, {
   CustomBottomSheetRef,
 } from "@/components/CustomBottomSheet";
 import CustomTabBar from "@/components/custom-tab-bar";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/store/auth-store";
 import { Redirect, Tabs } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,6 +22,7 @@ export const useAddContactsSheet = () => useContext(SheetContext);
 export default function TabLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasSeenOnboarding = useAuthStore((s) => s.hasSeenOnboarding);
+  const isDark = useColorScheme() === "dark";
   const sheetRef = useRef<CustomBottomSheetRef>(null);
   const queryClient = useQueryClient();
 
@@ -56,8 +58,12 @@ export default function TabLayout() {
         ref={sheetRef}
         snapPoints={["100%"]}
         initialIndex={0}
-        backgroundStyle={{ backgroundColor: "#0D0B1E" }}
-        handleIndicatorStyle={{ backgroundColor: "rgba(255,255,255,0.3)" }}
+        backgroundStyle={{ backgroundColor: isDark ? "#0D0B1E" : "#FFFFFF" }}
+        handleIndicatorStyle={{
+          backgroundColor: isDark
+            ? "rgba(255,255,255,0.3)"
+            : "rgba(0,0,0,0.15)",
+        }}
         enableContentPanningGesture
       >
         <AddContactsContent onClose={closeSheet} />

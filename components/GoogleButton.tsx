@@ -1,3 +1,4 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import icons from "@/constants/icons";
 import { useGoogleLogin } from "@/hooks/useAuth";
 import * as Google from "expo-auth-session/providers/google";
@@ -12,6 +13,7 @@ WebBrowser.maybeCompleteAuthSession();
 const GOOGLE_WEB_CLIENT_ID = "YOUR_GOOGLE_WEB_CLIENT_ID";
 
 const GoogleButton = () => {
+  const isDark = useColorScheme() === "dark";
   const googleLogin = useGoogleLogin();
 
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
@@ -42,9 +44,14 @@ const GoogleButton = () => {
           variant="primary"
           title="Continue with Google"
           leftIcon={icons.google}
-          backgroundColor="#1D1B31"
-          textColor="#FAFAFA"
+          backgroundColor={isDark ? "#1D1B31" : "#FFFFFF"}
+          textColor={isDark ? "#FAFAFA" : "#1A1A2E"}
           disabled={!request || googleLogin.isPending}
+          style={
+            !isDark
+              ? { borderWidth: 1, borderColor: "#E0DCF0" }
+              : undefined
+          }
         />
       </View>
     </View>

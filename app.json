@@ -16,7 +16,8 @@
         "backgroundColor": "#1D1B31"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.adenirangold.EveAi"
     },
     "web": {
       "output": "static",

@@ -1,3 +1,4 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ChatMessage, chatService } from "@/services/chat";
 import { Contact } from "@/services/contacts";
 import { useAuthStore } from "@/store/auth-store";
@@ -63,6 +64,7 @@ function toGiftedMessages(
 }
 
 const TypingIndicator = React.memo(() => {
+  const isDark = useColorScheme() === "dark";
   const dot1 = useRef(new Animated.Value(0.3)).current;
   const dot2 = useRef(new Animated.Value(0.3)).current;
   const dot3 = useRef(new Animated.Value(0.3)).current;
@@ -97,7 +99,12 @@ const TypingIndicator = React.memo(() => {
 
   return (
     <View style={styles.typingRow}>
-      <View style={styles.typingBubble}>
+      <View
+        style={[
+          styles.typingBubble,
+          { backgroundColor: isDark ? "#1C1C2E" : "#EDEBF6" },
+        ]}
+      >
         {[dot1, dot2, dot3].map((dot, i) => (
           <Animated.View key={i} style={[styles.typingDot, { opacity: dot }]} />
         ))}
@@ -112,6 +119,7 @@ export default function ChatScreen() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const insets = useSafeAreaInsets();
+  const isDark = useColorScheme() === "dark";
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -198,16 +206,22 @@ export default function ChatScreen() {
         {...props}
         wrapperStyle={{
           right: styles.bubbleRight,
-          left: styles.bubbleLeft,
+          left: {
+            ...styles.bubbleLeft,
+            backgroundColor: isDark ? "#1C1C2E" : "#EDEBF6",
+          },
         }}
         textStyle={{
           right: styles.bubbleTextRight as TextStyle,
-          left: styles.bubbleTextLeft as TextStyle,
+          left: {
+            ...(styles.bubbleTextLeft as TextStyle),
+            color: isDark ? "#E8E8E8" : "#1A1A2E",
+          },
         }}
         tickStyle={{ color: "#6C56FF" }}
       />
     ),
-    [],
+    [isDark],
   );
 
   const renderAvatar = useCallback(
@@ -219,21 +233,34 @@ export default function ChatScreen() {
         return (
           <ExpoImage
             source={avatarUri}
-            style={styles.bubbleAvatar}
+            style={[
+              styles.bubbleAvatar,
+              { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+            ]}
             contentFit="cover"
           />
         );
       }
 
       return (
-        <View style={styles.bubbleAvatarFallback}>
-          <Text style={styles.bubbleAvatarText}>
+        <View
+          style={[
+            styles.bubbleAvatarFallback,
+            { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+          ]}
+        >
+          <Text
+            style={[
+              styles.bubbleAvatarText,
+              { color: isDark ? "#fff" : "#6C56FF" },
+            ]}
+          >
             {getInitials(contact?.name ?? "AI")}
           </Text>
         </View>
       );
     },
-    [contact],
+    [contact, isDark],
   );
 
   const renderInputToolbar = useCallback(() => {
@@ -241,15 +268,30 @@ export default function ChatScreen() {
       <View
         style={[
           styles.customInputWrapper,
-          { paddingBottom: Math.max(insets.bottom, 8) },
+          {
+            paddingBottom: Math.max(insets.bottom, 8),
+            backgroundColor: isDark ? "#111114" : "#F5F3FF",
+          },
         ]}
       >
-        <View style={styles.inputRow}>
+        <View
+          style={[
+            styles.inputRow,
+            { backgroundColor: isDark ? "#1C1C2E" : "#FFFFFF" },
+            !isDark && {
+              borderWidth: 1,
+              borderColor: "#E0DCF0",
+            },
+          ]}
+        >
           <TextInput
             ref={inputRef}
-            style={styles.textInput}
+            style={[
+              styles.textInput,
+              { color: isDark ? "#fff" : "#1A1A2E" },
+            ]}
             placeholder="Write your message"
-            placeholderTextColor="#666"
+            placeholderTextColor={isDark ? "#666" : "#9CA3AF"}
             value={inputText}
             onChangeText={setInputText}
             multiline
@@ -269,7 +311,7 @@ export default function ChatScreen() {
         </View>
       </View>
     );
-  }, [inputText, handleSend, insets.bottom]);
+  }, [inputText, handleSend, insets.bottom, isDark]);
 
   const renderFooter = useCallback(() => {
     if (!isSending) return null;
@@ -281,15 +323,33 @@ export default function ChatScreen() {
     [user],
   );
 
+  const iconColor = isDark ? "#fff" : "#1A1A2E";
+
   return (
-    <View style={styles.safe}>
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+    <View
+      style={[
+        styles.safe,
+        { backgroundColor: isDark ? "#0A0A0B" : "#F5F3FF" },
+      ]}
+    >
+      <View
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10 },
+          {
+            backgroundColor: isDark ? "#111114" : "#FFFFFF",
+            borderBottomColor: isDark
+              ? "rgba(255,255,255,0.06)"
+              : "rgba(0,0,0,0.06)",
+          },
+        ]}
+      >
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Ionicons name="chevron-back" size={24} color={iconColor} />
         </TouchableOpacity>
 
         {contact && (
@@ -301,18 +361,38 @@ export default function ChatScreen() {
             {contact.avatar ? (
               <ExpoImage
                 source={contact.avatar}
-                style={styles.avatar}
+                style={[
+                  styles.avatar,
+                  { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+                ]}
                 contentFit="cover"
               />
             ) : (
-              <View style={styles.initialsAvatar}>
-                <Text style={styles.initialsText}>
+              <View
+                style={[
+                  styles.initialsAvatar,
+                  { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.initialsText,
+                    { color: isDark ? "#fff" : "#6C56FF" },
+                  ]}
+                >
                   {getInitials(contact.name)}
                 </Text>
               </View>
             )}
             <View>
-              <Text style={styles.headerName}>{contact.name}</Text>
+              <Text
+                style={[
+                  styles.headerName,
+                  { color: isDark ? "#fff" : "#1A1A2E" },
+                ]}
+              >
+                {contact.name}
+              </Text>
               <Text style={styles.headerStatus}>
                 {isSending ? "Typing..." : "Online"}
               </Text>
@@ -326,7 +406,7 @@ export default function ChatScreen() {
             style={styles.menuButton}
             activeOpacity={0.7}
           >
-            <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
+            <Ionicons name="ellipsis-vertical" size={20} color={iconColor} />
           </TouchableOpacity>
 
           {menuVisible && (
@@ -340,14 +420,33 @@ export default function ChatScreen() {
                 style={[styles.menuOverlay, { paddingTop: insets.top + 50 }]}
                 onPress={() => setMenuVisible(false)}
               >
-                <View style={styles.dropdown}>
+                <View
+                  style={[
+                    styles.dropdown,
+                    {
+                      backgroundColor: isDark ? "#1C1C2E" : "#FFFFFF",
+                      shadowOpacity: isDark ? 0.35 : 0.12,
+                    },
+                  ]}
+                >
                   <TouchableOpacity
                     style={styles.dropdownItem}
                     activeOpacity={0.7}
                     onPress={handleViewProfile}
                   >
-                    <Ionicons name="person-outline" size={16} color="#fff" />
-                    <Text style={styles.dropdownText}>View Profile</Text>
+                    <Ionicons
+                      name="person-outline"
+                      size={16}
+                      color={iconColor}
+                    />
+                    <Text
+                      style={[
+                        styles.dropdownText,
+                        { color: isDark ? "#fff" : "#1A1A2E" },
+                      ]}
+                    >
+                      View Profile
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </Pressable>
@@ -370,7 +469,13 @@ export default function ChatScreen() {
           renderFooter={renderFooter}
           renderAvatar={renderAvatar}
           isScrollToBottomEnabled
-          scrollToBottomStyle={styles.scrollToBottom}
+          scrollToBottomStyle={[
+            styles.scrollToBottom,
+            {
+              backgroundColor: isDark ? "#1C1C2E" : "#FFFFFF",
+              borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
+            },
+          ]}
           keyboardAvoidingViewProps={{ enabled: false }}
           listProps={{
             keyboardDismissMode: "on-drag" as const,
@@ -378,7 +483,9 @@ export default function ChatScreen() {
           }}
           timeTextStyle={{
             right: { color: "rgba(255,255,255,0.5)" },
-            left: { color: "rgba(255,255,255,0.4)" },
+            left: {
+              color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)",
+            },
           }}
         />
       </KeyboardAvoidingView>
@@ -389,7 +496,6 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#0A0A0B",
   },
   keyboardAvoid: {
     flex: 1,
@@ -399,9 +505,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: "#111114",
     borderBottomWidth: 0.5,
-    borderBottomColor: "rgba(255,255,255,0.06)",
   },
   backButton: {
     padding: 4,
@@ -417,24 +521,20 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: "#1C1C2E",
   },
   initialsAvatar: {
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: "#1C1C2E",
     alignItems: "center",
     justifyContent: "center",
   },
   initialsText: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "600",
     fontFamily: "Outfit-SemiBold",
   },
   headerName: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "600",
     fontFamily: "Outfit-SemiBold",
@@ -457,13 +557,11 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   dropdown: {
-    backgroundColor: "#1C1C2E",
     borderRadius: 12,
     paddingVertical: 6,
     minWidth: 160,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
     shadowRadius: 8,
     elevation: 8,
   },
@@ -475,7 +573,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   dropdownText: {
-    color: "#fff",
     fontSize: 16,
     fontFamily: "Outfit-Medium",
   },
@@ -483,7 +580,6 @@ const styles = StyleSheet.create({
     width: BUBBLE_AVATAR_SIZE,
     height: BUBBLE_AVATAR_SIZE,
     borderRadius: BUBBLE_AVATAR_SIZE / 2,
-    backgroundColor: "#1C1C2E",
     marginRight: 4,
     marginBottom: 2,
   },
@@ -491,14 +587,12 @@ const styles = StyleSheet.create({
     width: BUBBLE_AVATAR_SIZE,
     height: BUBBLE_AVATAR_SIZE,
     borderRadius: BUBBLE_AVATAR_SIZE / 2,
-    backgroundColor: "#1C1C2E",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 4,
     marginBottom: 2,
   },
   bubbleAvatarText: {
-    color: "#fff",
     fontSize: 12,
     fontWeight: "600",
     fontFamily: "Outfit-SemiBold",
@@ -512,7 +606,6 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   bubbleLeft: {
-    backgroundColor: "#1C1C2E",
     borderRadius: 18,
     borderBottomLeftRadius: 4,
     paddingHorizontal: 2,
@@ -526,7 +619,6 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   bubbleTextLeft: {
-    color: "#E8E8E8",
     fontSize: 16,
     fontFamily: "Outfit-Regular",
     lineHeight: 21,
@@ -534,19 +626,16 @@ const styles = StyleSheet.create({
   customInputWrapper: {
     paddingHorizontal: 14,
     paddingTop: 8,
-    backgroundColor: "#111114",
   },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1C1C2E",
     borderRadius: 28,
     paddingHorizontal: 18,
     minHeight: 50,
   },
   textInput: {
     flex: 1,
-    color: "#fff",
     fontSize: 16,
     lineHeight: 20,
     fontFamily: "Outfit-Regular",
@@ -559,8 +648,6 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   scrollToBottom: {
-    backgroundColor: "#1C1C2E",
-    borderColor: "rgba(255,255,255,0.1)",
     borderWidth: 0.5,
   },
   typingRow: {
@@ -568,7 +655,6 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   typingBubble: {
-    backgroundColor: "#1C1C2E",
     borderRadius: 18,
     borderBottomLeftRadius: 4,
     paddingHorizontal: 14,

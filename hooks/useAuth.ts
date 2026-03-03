@@ -59,6 +59,12 @@ export function useGoogleLogin() {
   });
 }
 
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: authService.changePassword,
+  });
+}
+
 export function useProfile() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const setUser = useAuthStore((s) => s.setUser);

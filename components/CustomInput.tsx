@@ -1,3 +1,4 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import icons from "@/constants/icons";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
@@ -9,8 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-// Uncomment if you want to use icons for password toggle
-// import { Eye, EyeOff } from 'lucide-react-native';
 
 export interface CustomInputProps extends Omit<TextInputProps, "style"> {
   value: string;
@@ -18,7 +17,6 @@ export interface CustomInputProps extends Omit<TextInputProps, "style"> {
   placeholder?: string;
   label?: string;
   required?: boolean;
-  // secureTextEntry?: boolean;
   editable?: boolean;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
   keyboardType?: TextInputProps["keyboardType"];
@@ -59,13 +57,19 @@ const CustomInput: React.FC<CustomInputProps> = ({
   modal = false,
   error,
   search = false,
-  backgroundColor = "#191919",
+  backgroundColor: bgProp,
   borderColor: borderColorProp,
   borderRadius,
   ...props
 }) => {
+  const isDark = useColorScheme() === "dark";
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
+
+  const backgroundColor = bgProp ?? (isDark ? "#191919" : "#F5F3FF");
+  const textColor = isDark ? "#E6F3F3" : "#1A1A2E";
+  const labelColor = isDark ? "#E6F3F3" : "#374151";
+  const placeholderColor = "#9CA3AF";
 
   const handleFocus = (e: any) => {
     setIsFocused(true);
@@ -80,7 +84,7 @@ const CustomInput: React.FC<CustomInputProps> = ({
   const togglePasswordVisibility = () => {
     setIsPasswordVisible(!isPasswordVisible);
   };
-  //   const TextInputComponent = modal ? BottomSheetTextInput : TextInput;
+
   const TextInputComponent = TextInput;
   return (
     <View className="w-full">
@@ -88,7 +92,7 @@ const CustomInput: React.FC<CustomInputProps> = ({
         <Text
           className="font-Outfit text-sm mb-2"
           style={{
-            color: "#E6F3F3",
+            color: labelColor,
             flexShrink: 1,
           }}
         >
@@ -111,7 +115,7 @@ const CustomInput: React.FC<CustomInputProps> = ({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={placeholderColor}
           secureTextEntry={secureTextEntry && !isPasswordVisible}
           editable={editable}
           autoCapitalize={autoCapitalize}
@@ -136,16 +140,17 @@ const CustomInput: React.FC<CustomInputProps> = ({
             ${editable ? "" : "opacity-50"}
           `}
           style={{
-            borderColor: error ? "#FF3B3B" : (borderColorProp ?? "transparent"),
+            borderColor: error
+              ? "#FF3B3B"
+              : (borderColorProp ?? (isDark ? "transparent" : "#E0DCF0")),
             backgroundColor,
-            color: "#E6F3F3",
+            color: textColor,
             ...(multiline && { minHeight: 48 }),
             ...(borderRadius != null && { borderRadius }),
           }}
           {...props}
         />
 
-        {/* Password visibility toggle - Uncomment when needed */}
         {secureTextEntry && (
           <TouchableOpacity
             onPress={togglePasswordVisibility}

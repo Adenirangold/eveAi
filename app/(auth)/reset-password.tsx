@@ -1,13 +1,19 @@
 import BackButton from "@/components/BackButton";
 import Header from "@/components/Header";
 import ResetPasswordForm from "@/components/forms/ResetPasswordForm";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React from "react";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const ResetPassword = () => {
+  const isDark = useColorScheme() === "dark";
+
   return (
-    <SafeAreaView className="flex-1 bg-[#0A0A0B] px-5">
+    <SafeAreaView
+      className="flex-1 px-5"
+      style={{ backgroundColor: isDark ? "#0A0A0B" : "#F5F3FF" }}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"

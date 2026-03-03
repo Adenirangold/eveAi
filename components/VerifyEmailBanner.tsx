@@ -1,4 +1,5 @@
 import icons from "@/constants/icons";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useProfile } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
@@ -6,14 +7,25 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function VerifyEmailBanner() {
   const { data: profile } = useProfile();
+  const isDark = useColorScheme() === "dark";
 
   if (!profile || profile.emailVerified) return null;
 
   return (
-    <View style={styles.banner}>
+    <View
+      style={[
+        styles.banner,
+        {
+          backgroundColor: isDark ? "#1D1B31" : "#FFFBEB",
+          borderColor: isDark ? "#2D2B45" : "#FDE68A",
+        },
+      ]}
+    >
       <View style={styles.content}>
         <Ionicons name="warning" size={18} color="#F59E0B" />
-        <Text style={styles.text}>Your email is not verified</Text>
+        <Text style={[styles.text, { color: isDark ? "#F59E0B" : "#B45309" }]}>
+          Your email is not verified
+        </Text>
       </View>
       <Pressable style={styles.button}>
         <Text style={styles.buttonText}>Verify</Text>
@@ -32,7 +44,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#1D1B31",
     marginHorizontal: 16,
     marginTop: 8,
     marginBottom: 4,
@@ -40,7 +51,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#2D2B45",
   },
   content: {
     flexDirection: "row",
@@ -48,7 +58,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   text: {
-    color: "#F59E0B",
     fontSize: 13,
     fontWeight: "600",
   },

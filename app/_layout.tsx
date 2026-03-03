@@ -14,6 +14,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useProfile } from "@/hooks/useAuth";
 import QueryProvider from "@/providers/QueryProvider";
 import { useAuthStore } from "@/store/auth-store";
+import { useThemeStore } from "@/store/theme-store";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
@@ -33,6 +34,7 @@ export const unstable_settings = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const hydrate = useAuthStore((s) => s.hydrate);
+  const hydrateTheme = useThemeStore((s) => s.hydrate);
 
   const [loaded, error] = useFonts({
     "Outfit-Bold": require("@/assets/fonts/Outfit-Bold.ttf"),
@@ -45,7 +47,8 @@ export default function RootLayout() {
 
   useEffect(() => {
     hydrate();
-  }, [hydrate]);
+    hydrateTheme();
+  }, [hydrate, hydrateTheme]);
 
   useEffect(() => {
     if (loaded || error) {

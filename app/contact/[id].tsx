@@ -1,4 +1,5 @@
 import Background from "@/components/BackGround";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getLocalContactById } from "@/lib/database";
 import { contactsService, type AvailableContact } from "@/services/contacts";
 import { Ionicons } from "@expo/vector-icons";
@@ -30,6 +31,7 @@ export default function ContactProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const isDark = useColorScheme() === "dark";
 
   const localContact = useMemo(
     () => (id ? getLocalContactById(id) : null),
@@ -43,6 +45,8 @@ export default function ContactProfileScreen() {
     initialData: localContact ?? undefined,
   });
 
+  const iconColor = isDark ? "#fff" : "#1A1A2E";
+
   return (
     <Background>
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
@@ -51,9 +55,11 @@ export default function ContactProfileScreen() {
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Ionicons name="chevron-back" size={24} color={iconColor} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
+        <Text style={[styles.headerTitle, { color: iconColor }]}>
+          Profile
+        </Text>
         <View style={styles.backButton} />
       </View>
 
@@ -67,23 +73,70 @@ export default function ContactProfileScreen() {
             {contact.avatar ? (
               <ExpoImage
                 source={contact.avatar}
-                style={styles.avatar}
+                style={[
+                  styles.avatar,
+                  { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+                ]}
                 contentFit="cover"
               />
             ) : (
-              <View style={styles.avatarFallback}>
-                <Text style={styles.avatarInitials}>
+              <View
+                style={[
+                  styles.avatarFallback,
+                  { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.avatarInitials,
+                    { color: isDark ? "#fff" : "#6C56FF" },
+                  ]}
+                >
                   {getInitials(contact.name)}
                 </Text>
               </View>
             )}
-            <Text style={styles.name}>{contact.name}</Text>
+            <Text
+              style={[
+                styles.name,
+                { color: isDark ? "#fff" : "#1A1A2E" },
+              ]}
+            >
+              {contact.name}
+            </Text>
             <Text style={styles.slug}>@{contact.slug}</Text>
           </View>
 
-          <View style={styles.card}>
-            <Text style={styles.cardLabel}>Bio</Text>
-            <Text style={styles.cardBio}>{contact.bio}</Text>
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: isDark ? "#1C1C2E" : "#FFFFFF" },
+              !isDark && {
+                borderWidth: 1,
+                borderColor: "#E0DCF0",
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.cardLabel,
+                {
+                  color: isDark
+                    ? "rgba(255,255,255,0.5)"
+                    : "rgba(0,0,0,0.4)",
+                },
+              ]}
+            >
+              Bio
+            </Text>
+            <Text
+              style={[
+                styles.cardBio,
+                { color: isDark ? "#E8E8E8" : "#374151" },
+              ]}
+            >
+              {contact.bio}
+            </Text>
           </View>
 
           <TouchableOpacity
@@ -117,7 +170,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerTitle: {
-    color: "#fff",
     fontSize: 18,
     fontWeight: "600",
     fontFamily: "Outfit-SemiBold",
@@ -140,7 +192,6 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: "#1C1C2E",
     marginBottom: 16,
     borderWidth: 3,
     borderColor: "#6C56FF",
@@ -149,7 +200,6 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: "#1C1C2E",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
@@ -157,13 +207,11 @@ const styles = StyleSheet.create({
     borderColor: "#6C56FF",
   },
   avatarInitials: {
-    color: "#fff",
     fontSize: 36,
     fontWeight: "700",
     fontFamily: "Outfit-Bold",
   },
   name: {
-    color: "#fff",
     fontSize: 24,
     fontWeight: "700",
     fontFamily: "Outfit-Bold",
@@ -175,13 +223,11 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Regular",
   },
   card: {
-    backgroundColor: "#1C1C2E",
     borderRadius: 16,
     padding: 20,
     marginBottom: 24,
   },
   cardLabel: {
-    color: "rgba(255,255,255,0.5)",
     fontSize: 13,
     fontFamily: "Outfit-Medium",
     textTransform: "uppercase",
@@ -189,7 +235,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   cardBio: {
-    color: "#E8E8E8",
     fontSize: 16,
     fontFamily: "Outfit-Regular",
     lineHeight: 24,

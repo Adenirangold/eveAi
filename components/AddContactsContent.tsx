@@ -1,3 +1,4 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   getLocalAvailableContacts,
   saveLocalAvailableContacts,
@@ -40,33 +41,66 @@ function ContactRow({
   adding: boolean;
   added: boolean;
 }) {
+  const isDark = useColorScheme() === "dark";
+
   return (
-    <View style={styles.row}>
+    <View
+      style={[
+        styles.row,
+        { borderBottomColor: isDark ? "#1A1354" : "rgba(0,0,0,0.08)" },
+      ]}
+    >
       <View style={styles.avatarContainer}>
         {item.avatar ? (
           <ExpoImage
             source={item.avatar}
-            style={styles.avatar}
+            style={[
+              styles.avatar,
+              { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+            ]}
             contentFit="cover"
           />
         ) : (
-          <View style={styles.initials}>
-            <Text style={styles.initialsText}>{getInitials(item.name)}</Text>
+          <View
+            style={[
+              styles.initials,
+              { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+            ]}
+          >
+            <Text
+              style={[
+                styles.initialsText,
+                { color: isDark ? "#fff" : "#6C56FF" },
+              ]}
+            >
+              {getInitials(item.name)}
+            </Text>
           </View>
         )}
       </View>
 
       <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>
+        <Text
+          style={[styles.name, { color: isDark ? "#fff" : "#1A1A2E" }]}
+          numberOfLines={1}
+        >
           {item.name}
         </Text>
-        <Text style={styles.bio} numberOfLines={2}>
+        <Text
+          style={[styles.bio, { color: isDark ? "#888" : "#6B7280" }]}
+          numberOfLines={2}
+        >
           {item.bio}
         </Text>
       </View>
 
       <TouchableOpacity
-        style={[styles.addButton, added && styles.addedButton]}
+        style={[
+          styles.addButton,
+          added && {
+            backgroundColor: isDark ? "#2E2E4A" : "#D1D5DB",
+          },
+        ]}
         activeOpacity={0.7}
         onPress={() => onAdd(item.id)}
         disabled={adding || added}
@@ -75,8 +109,19 @@ function ContactRow({
           <ActivityIndicator size="small" color="#fff" />
         ) : added ? (
           <>
-            <Ionicons name="checkmark" size={16} color="#fff" />
-            <Text style={styles.addButtonText}>Added</Text>
+            <Ionicons
+              name="checkmark"
+              size={16}
+              color={isDark ? "#fff" : "#6B7280"}
+            />
+            <Text
+              style={[
+                styles.addButtonText,
+                added && !isDark && { color: "#6B7280" },
+              ]}
+            >
+              Added
+            </Text>
           </>
         ) : (
           <>
@@ -94,6 +139,7 @@ export default function AddContactsContent({
 }: {
   onClose?: () => void;
 }) {
+  const isDark = useColorScheme() === "dark";
   const queryClient = useQueryClient();
   const [addingIds, setAddingIds] = useState<Set<string>>(new Set());
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
@@ -145,9 +191,17 @@ export default function AddContactsContent({
           onPress={onClose}
           activeOpacity={0.7}
         >
-          <Ionicons name="chevron-down" size={28} color="#fff" />
+          <Ionicons
+            name="chevron-down"
+            size={28}
+            color={isDark ? "#fff" : "#1A1A2E"}
+          />
         </TouchableOpacity>
-        <Text style={styles.title}>Add Characters</Text>
+        <Text
+          style={[styles.title, { color: isDark ? "#fff" : "#1A1A2E" }]}
+        >
+          Add Characters
+        </Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -168,7 +222,14 @@ export default function AddContactsContent({
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No contacts available</Text>
+            <Text
+              style={[
+                styles.emptyText,
+                { color: isDark ? "#888" : "#6B7280" },
+              ]}
+            >
+              No contacts available
+            </Text>
           }
         />
       )}
@@ -194,7 +255,6 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
-    color: "#fff",
     fontSize: 18,
     fontWeight: "700",
     fontFamily: "Outfit-SemiBold",
@@ -212,7 +272,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 14,
     borderBottomWidth: 0.5,
-    borderBottomColor: "#1A1354",
   },
   avatarContainer: {
     position: "relative",
@@ -221,18 +280,15 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: "#1C1C2E",
   },
   initials: {
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: "#1C1C2E",
     alignItems: "center",
     justifyContent: "center",
   },
   initialsText: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "600",
     fontFamily: "Outfit-SemiBold",
@@ -244,14 +300,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   name: {
-    color: "#fff",
     fontSize: 15,
     fontWeight: "600",
     marginBottom: 3,
     fontFamily: "Outfit-SemiBold",
   },
   bio: {
-    color: "#888",
     fontSize: 13,
     fontFamily: "Outfit-Regular",
     lineHeight: 18,
@@ -265,9 +319,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
   },
-  addedButton: {
-    backgroundColor: "#2E2E4A",
-  },
   addButtonText: {
     color: "#fff",
     fontSize: 13,
@@ -275,7 +326,6 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit-Medium",
   },
   emptyText: {
-    color: "#888",
     fontSize: 14,
     textAlign: "center",
     marginTop: 40,

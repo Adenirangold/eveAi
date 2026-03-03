@@ -21,6 +21,11 @@ interface ResetPasswordPayload {
   newPassword: string;
 }
 
+interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
+
 interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -83,6 +88,14 @@ export const authService = {
     const { data } = await api.patch<ApiResponse<User>>("/me/username", {
       username,
     });
+    return data.data;
+  },
+
+  changePassword: async (payload: ChangePasswordPayload): Promise<MessageData> => {
+    const { data } = await api.post<ApiResponse<MessageData>>(
+      "/me/change-password",
+      payload,
+    );
     return data.data;
   },
 

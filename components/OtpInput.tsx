@@ -1,3 +1,4 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useRef, useState } from "react";
 import {
   NativeSyntheticEvent,
@@ -28,6 +29,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
   boxClassName = "",
   labelClassName = "",
 }) => {
+  const isDark = useColorScheme() === "dark";
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const inputRefs = useRef<(TextInput | null | undefined)[]>([]);
 
@@ -82,12 +84,19 @@ const OTPInput: React.FC<OTPInputProps> = ({
     setFocusedIndex(null);
   };
 
+  const bgDefault = isDark ? "#191919" : "#F5F3FF";
+  const bgFocused = isDark ? "#1D1B31" : "#FFFFFF";
+  const borderDefault = isDark ? "#E2E3E3" : "#E0DCF0";
+  const textFilled = isDark ? "#E6F3F3" : "#1A1A2E";
+  const textEmpty = "#808080";
+  const dashColor = isDark ? "#E2E3E3" : "#6B7280";
+
   return (
     <View className={`w-full ${containerClassName}`}>
       {label && (
         <Text
           className={`font-Arial text-sm mb-2 ${labelClassName}`}
-          style={{ color: "#003131" }}
+          style={{ color: isDark ? "#E6F3F3" : "#374151" }}
         >
           {label}
           {required && <Text className="text-red-500"> *</Text>}
@@ -115,10 +124,10 @@ const OTPInput: React.FC<OTPInputProps> = ({
                     ${boxClassName}
                   `}
                   style={{
-                    backgroundColor: isFocused ? "#1D1B31" : "#191919",
+                    backgroundColor: isFocused ? bgFocused : bgDefault,
                     borderWidth: isFocused ? 1.5 : 1,
-                    borderColor: isFocused ? "#6C56FF" : "#E2E3E3",
-                    color: hasValue ? "#E6F3F3" : "#808080",
+                    borderColor: isFocused ? "#6C56FF" : borderDefault,
+                    color: hasValue ? textFilled : textEmpty,
                   }}
                   keyboardType="number-pad"
                   maxLength={1}
@@ -137,7 +146,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
                 <View className="mx-3">
                   <Text
                     className="text-2xl font-bold"
-                    style={{ color: "#003131" }}
+                    style={{ color: dashColor }}
                   >
                     –
                   </Text>

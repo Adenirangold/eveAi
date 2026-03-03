@@ -1,3 +1,4 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getLocalStories, saveLocalStories } from "@/lib/database";
 import type { Story } from "@/services/stories";
 import { storiesService } from "@/services/stories";
@@ -36,6 +37,8 @@ function getInitials(name: string): string {
 }
 
 function ReelAvatar({ item, onPress }: { item: Story; onPress: () => void }) {
+  const isDark = useColorScheme() === "dark";
+
   return (
     <TouchableOpacity
       style={styles.reelWrapper}
@@ -48,23 +51,47 @@ function ReelAvatar({ item, onPress }: { item: Story; onPress: () => void }) {
         end={{ x: 1, y: 1 }}
         style={styles.storyRing}
       >
-        <View style={styles.ringInner}>
+        <View
+          style={[
+            styles.ringInner,
+            { backgroundColor: isDark ? "#0D0B1E" : "#FFFFFF" },
+          ]}
+        >
           {item.contact.avatar ? (
             <ExpoImage
               source={item.contact.avatar}
-              style={styles.avatarCircle}
+              style={[
+                styles.avatarCircle,
+                { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+              ]}
               contentFit="cover"
             />
           ) : (
-            <View style={styles.initialsCircle}>
-              <Text style={styles.initialsText}>
+            <View
+              style={[
+                styles.initialsCircle,
+                { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.initialsText,
+                  { color: isDark ? "#fff" : "#6C56FF" },
+                ]}
+              >
                 {getInitials(item.contact.name)}
               </Text>
             </View>
           )}
         </View>
       </LinearGradient>
-      <Text style={styles.reelName} numberOfLines={1}>
+      <Text
+        style={[
+          styles.reelName,
+          { color: isDark ? "#ccc" : "#4B5563" },
+        ]}
+        numberOfLines={1}
+      >
         {item.contact.name}
       </Text>
     </TouchableOpacity>
@@ -165,7 +192,6 @@ const styles = StyleSheet.create({
     width: RING_SIZE - 4,
     height: RING_SIZE - 4,
     borderRadius: (RING_SIZE - 4) / 2,
-    backgroundColor: "#0D0B1E",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -173,24 +199,20 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: "#1C1C2E",
   },
   initialsCircle: {
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: "#1C1C2E",
     alignItems: "center",
     justifyContent: "center",
   },
   initialsText: {
-    color: "#fff",
     fontSize: 18,
     fontWeight: "600",
     fontFamily: "Outfit-Regular",
   },
   reelName: {
-    color: "#ccc",
     fontSize: 11,
     marginTop: 6,
     textAlign: "center",

@@ -1,3 +1,4 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useLogin } from "@/hooks/useAuth";
 import { signUpSchema } from "@/validation/schema";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,6 +20,7 @@ const REMEMBER_PASSWORD_KEY = "rememberMe_password";
 const LoginForm = () => {
   type SignUpFormData = z.infer<typeof signUpSchema>;
   const loginMutation = useLogin();
+  const isDark = useColorScheme() === "dark";
 
   const {
     control,
@@ -61,6 +63,10 @@ const LoginForm = () => {
       },
     });
   };
+
+  const subtextColor = isDark ? "#E5E5E5" : "#6B7280";
+  const bodyColor = isDark ? "#FAFAFA" : "#374151";
+
   return (
     <View className="flex-1 gap-5">
       <FormTextInput
@@ -89,7 +95,10 @@ const LoginForm = () => {
             size={20}
             color={rememberMe ? "#6C56FF" : "#9CA3AF"}
           />
-          <Text className="font-Outfit text-sm text-typo-neutralLight">
+          <Text
+            className="font-Outfit text-sm"
+            style={{ color: subtextColor }}
+          >
             Remember me
           </Text>
         </Pressable>
@@ -108,7 +117,10 @@ const LoginForm = () => {
           loading={loginMutation.isPending}
           onPress={handleSubmit(onSubmit)}
         />
-        <Text className="font-Outfit text-sm text-typo-neutral text-center mt-5">
+        <Text
+          className="font-Outfit text-sm text-center mt-5"
+          style={{ color: bodyColor }}
+        >
           Don't have an account?{" "}
           <Link
             className="text-primary-primary font-OutfitSemiBold

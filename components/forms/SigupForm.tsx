@@ -1,3 +1,4 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSignUp } from "@/hooks/useAuth";
 import { signUpSchema } from "@/validation/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,6 +15,7 @@ import CustomButton from "../custom-button";
 const SigupForm = () => {
   type SignUpFormData = z.infer<typeof signUpSchema>;
   const signUpMutation = useSignUp();
+  const isDark = useColorScheme() === "dark";
 
   const { control, handleSubmit } = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
@@ -32,6 +34,8 @@ const SigupForm = () => {
       },
     });
   };
+
+  const bodyColor = isDark ? "#FAFAFA" : "#374151";
 
   return (
     <View className="flex-1 gap-5">
@@ -60,7 +64,10 @@ const SigupForm = () => {
           loading={signUpMutation.isPending}
           onPress={handleSubmit(onSubmit)}
         />
-        <Text className="font-Outfit text-sm text-typo-neutral text-center mt-5">
+        <Text
+          className="font-Outfit text-sm text-center mt-5"
+          style={{ color: bodyColor }}
+        >
           Already have an account?{" "}
           <Link
             className="text-primary-primary font-OutfitSemiBold

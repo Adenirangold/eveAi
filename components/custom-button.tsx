@@ -1,3 +1,4 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React from "react";
 import {
   ActivityIndicator,
@@ -26,11 +27,6 @@ interface CustomButtonProps extends Omit<TouchableOpacityProps, "children"> {
   rightIconTintColor?: string;
 }
 
-const VARIANT_COLORS: Record<Variant, string> = {
-  primary: "#6C56FF",
-  secondary: "#1D1B31",
-};
-
 const BORDER_RADIUS: Record<Rounded, number> = {
   default: 3,
   full: 30,
@@ -41,7 +37,7 @@ const CustomButton = ({
   variant = "primary",
   rounded = "default",
   backgroundColor,
-  textColor = "#E5E5E5",
+  textColor: textColorProp,
   loading = false,
   disabled = false,
   leftIcon,
@@ -52,7 +48,17 @@ const CustomButton = ({
   style,
   ...rest
 }: CustomButtonProps) => {
+  const isDark = useColorScheme() === "dark";
+
+  const VARIANT_COLORS: Record<Variant, string> = {
+    primary: "#6C56FF",
+    secondary: isDark ? "#1D1B31" : "#EDEBF6",
+  };
+
   const bgColor = backgroundColor ?? VARIANT_COLORS[variant];
+  const textColor =
+    textColorProp ??
+    (variant === "secondary" && !isDark ? "#6C56FF" : "#E5E5E5");
   const radius = BORDER_RADIUS[rounded];
   const isDisabled = disabled || loading;
 

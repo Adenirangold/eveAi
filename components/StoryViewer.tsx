@@ -32,7 +32,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SvgUri } from "react-native-svg";
+import { Image as ExpoImage } from "expo-image";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 const DISMISS_THRESHOLD = 120;
@@ -260,9 +260,11 @@ export default function StoryViewer({
             {/* Header */}
             <View style={[vs.header, { top: insets.top + 22 }]}>
               <View style={vs.user}>
-                <View style={vs.hAvatar}>
-                  <SvgUri uri={story.contact.avatar} width={32} height={32} />
-                </View>
+                <ExpoImage
+                  source={story.contact.avatar}
+                  style={vs.hAvatar}
+                  contentFit="cover"
+                />
                 <Text style={vs.hName}>{story.contact.name}</Text>
                 <Text style={vs.hTime}>{timeAgo(story.createdAt)}</Text>
               </View>
@@ -353,7 +355,6 @@ const vs = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     backgroundColor: "#1C1C2E",
-    overflow: "hidden",
   },
   hName: {
     color: "#fff",

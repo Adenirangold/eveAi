@@ -1,3 +1,4 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
@@ -29,9 +30,17 @@ export default function CustomTabBar({
   navigation,
 }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   return (
-    <View style={[styles.wrapper, { bottom: Math.max(insets.bottom, 16) }]}>
+    <View
+      style={[
+        styles.wrapper,
+        { bottom: Math.max(insets.bottom, 16) },
+        isDark ? styles.wrapperDark : styles.wrapperLight,
+      ]}
+    >
       <View style={styles.container}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
@@ -42,6 +51,12 @@ export default function CustomTabBar({
             label: route.name,
           };
           const iconName = isFocused ? meta.active : meta.inactive;
+
+          const iconColor = isDark
+            ? "#fff"
+            : isFocused
+              ? "#6C56FF"
+              : "#6B7280";
 
           const onPress = () => {
             const event = navigation.emit({
@@ -61,10 +76,23 @@ export default function CustomTabBar({
               accessibilityState={isFocused ? { selected: true } : {}}
               accessibilityLabel={options.tabBarAccessibilityLabel}
               onPress={onPress}
-              style={[styles.tab, isFocused && styles.tabActive]}
+              style={[
+                styles.tab,
+                isFocused &&
+                  (isDark ? styles.tabActiveDark : styles.tabActiveLight),
+              ]}
             >
-              <Ionicons name={iconName} size={28} color="#fff" />
-              {isFocused && <Text style={styles.label}>{meta.label}</Text>}
+              <Ionicons name={iconName} size={28} color={iconColor} />
+              {isFocused && (
+                <Text
+                  style={[
+                    styles.label,
+                    { color: isDark ? "#fff" : "#6C56FF" },
+                  ]}
+                >
+                  {meta.label}
+                </Text>
+              )}
             </TouchableOpacity>
           );
         })}
@@ -78,15 +106,23 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 24,
     right: 24,
-    backgroundColor: "rgba(18, 15, 35, 0.92)",
     borderRadius: 32,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.08)",
-    shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
     shadowRadius: 16,
     elevation: 12,
+  },
+  wrapperDark: {
+    backgroundColor: "rgba(18, 15, 35, 0.92)",
+    borderColor: "rgba(255,255,255,0.08)",
+    shadowColor: "#000",
+    shadowOpacity: 0.4,
+  },
+  wrapperLight: {
+    backgroundColor: "rgba(255, 255, 255, 0.92)",
+    borderColor: "rgba(0,0,0,0.06)",
+    shadowColor: "#6C56FF",
+    shadowOpacity: 0.12,
   },
   container: {
     flexDirection: "row",
@@ -104,11 +140,13 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     gap: 6,
   },
-  tabActive: {
+  tabActiveDark: {
     backgroundColor: "rgba(255,255,255,0.08)",
   },
+  tabActiveLight: {
+    backgroundColor: "rgba(108,86,255,0.1)",
+  },
   label: {
-    color: "#fff",
     fontSize: 13,
     fontWeight: "600",
     fontFamily: "Outfit-Medium",
