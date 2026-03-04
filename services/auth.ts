@@ -9,6 +9,7 @@ interface LoginPayload {
 interface SignUpPayload {
   email: string;
   password: string;
+  fullName: string;
 }
 
 interface ForgotPasswordPayload {
@@ -40,6 +41,11 @@ interface AuthData {
 
 interface MessageData {
   message: string;
+}
+
+interface ResourcesData {
+  policyUrl: string | null;
+  privacyUrl: string | null;
 }
 
 export const authService = {
@@ -91,9 +97,16 @@ export const authService = {
     return data.data;
   },
 
+  updateFullName: async (fullName: string): Promise<User> => {
+    const { data } = await api.patch<ApiResponse<User>>("/me/fullname", {
+      fullName,
+    });
+    return data.data;
+  },
+
   changePassword: async (payload: ChangePasswordPayload): Promise<MessageData> => {
-    const { data } = await api.post<ApiResponse<MessageData>>(
-      "/me/change-password",
+    const { data } = await api.patch<ApiResponse<MessageData>>(
+      "/me/password",
       payload,
     );
     return data.data;
@@ -103,6 +116,18 @@ export const authService = {
     const { data } = await api.post<ApiResponse<AuthData>>("/auth/google", {
       idToken,
     });
+    return data.data;
+  },
+
+  requestDeletion: async (): Promise<MessageData> => {
+    const { data } = await api.post<ApiResponse<MessageData>>(
+      "/auth/request-deletion",
+    );
+    return data.data;
+  },
+
+  getResources: async (): Promise<ResourcesData> => {
+    const { data } = await api.get<ApiResponse<ResourcesData>>("/resources");
     return data.data;
   },
 };

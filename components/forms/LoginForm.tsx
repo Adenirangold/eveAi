@@ -1,10 +1,11 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useLogin } from "@/hooks/useAuth";
-import { signUpSchema } from "@/validation/schema";
+import { useLogin, useResources } from "@/hooks/useAuth";
+import { loginSchema } from "@/validation/schema";
 import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import * as WebBrowser from "expo-web-browser";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Pressable, Text, TouchableOpacity, View } from "react-native";
@@ -18,16 +19,13 @@ const REMEMBER_EMAIL_KEY = "rememberMe_email";
 const REMEMBER_PASSWORD_KEY = "rememberMe_password";
 
 const LoginForm = () => {
-  type SignUpFormData = z.infer<typeof signUpSchema>;
+  type LoginFormData = z.infer<typeof loginSchema>;
   const loginMutation = useLogin();
+  const { data: resources } = useResources();
   const isDark = useColorScheme() === "dark";
 
-  const {
-    control,
-    handleSubmit,
-    setValue,
-  } = useForm<SignUpFormData>({
-    resolver: zodResolver(signUpSchema),
+  const { control, handleSubmit, setValue } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
       password: "",
@@ -38,7 +36,9 @@ const LoginForm = () => {
   useEffect(() => {
     (async () => {
       const savedEmail = await SecureStore.getItemAsync(REMEMBER_EMAIL_KEY);
-      const savedPassword = await SecureStore.getItemAsync(REMEMBER_PASSWORD_KEY);
+      const savedPassword = await SecureStore.getItemAsync(
+        REMEMBER_PASSWORD_KEY,
+      );
       if (savedEmail) {
         setValue("email", savedEmail);
         if (savedPassword) setValue("password", savedPassword);
@@ -49,7 +49,7 @@ const LoginForm = () => {
 
   const errorMessage = loginMutation.error?.message ?? "";
 
-  const onSubmit = (data: SignUpFormData) => {
+  const onSubmit = (data: LoginFormData) => {
     loginMutation.mutate(data, {
       onSuccess: async () => {
         if (rememberMe) {
@@ -95,10 +95,7 @@ const LoginForm = () => {
             size={20}
             color={rememberMe ? "#6C56FF" : "#9CA3AF"}
           />
-          <Text
-            className="font-Outfit text-sm"
-            style={{ color: subtextColor }}
-          >
+          <Text className="font-Outfit text-sm" style={{ color: subtextColor }}>
             Remember me
           </Text>
         </Pressable>
@@ -134,6 +131,35 @@ const LoginForm = () => {
       </View>
       <View className="flex-1" />
       <GoogleButton />
+      <Text
+        className="font-Outfit text-sm text-center mt-4 mb-2"
+        style={{ color: isDark ? "#888" : "#9CA3AF" }}
+      >
+        By continuing, you agree to our{" "}
+        <Text
+          className="font-OutfitMedium text-xs"
+          style={{ color: "#6C56FF" }}
+          onPress={() =>
+            WebBrowser.openBrowserAsync(
+              resources?.privacyUrl ?? "https://binahstudio.com",
+            )
+          }
+        >
+          Privacy Terms
+        </Text>
+        {" & "}
+        <Text
+          className="font-OutfitMedium text-xs"
+          style={{ color: "#6C56FF" }}
+          onPress={() =>
+            WebBrowser.openBrowserAsync(
+              resources?.policyUrl ?? "https://binahstudio.com",
+            )
+          }
+        >
+          Policy Terms
+        </Text>
+      </Text>
     </View>
   );
 };

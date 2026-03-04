@@ -51,6 +51,7 @@ export default function TabLayout() {
         }}
       >
         <Tabs.Screen name="index" />
+        <Tabs.Screen name="story" />
         <Tabs.Screen name="profile" />
       </Tabs>
 

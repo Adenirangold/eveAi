@@ -91,6 +91,23 @@ export function useUpdateUsername() {
   });
 }
 
+export function useUpdateFullName() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: authService.updateFullName,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    },
+  });
+}
+
+export function useRequestDeletion() {
+  return useMutation({
+    mutationFn: authService.requestDeletion,
+  });
+}
+
 export function useLogout() {
   const logout = useAuthStore((s) => s.logout);
   const queryClient = useQueryClient();
@@ -99,4 +116,18 @@ export function useLogout() {
     await logout();
     queryClient.clear();
   };
+}
+
+const FALLBACK_URL = "https://binahstudio.com";
+
+export function useResources() {
+  return useQuery({
+    queryKey: ["resources"],
+    queryFn: authService.getResources,
+    staleTime: 1000 * 60 * 60,
+    select: (data) => ({
+      policyUrl: data.policyUrl || FALLBACK_URL,
+      privacyUrl: data.privacyUrl || FALLBACK_URL,
+    }),
+  });
 }

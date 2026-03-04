@@ -1,14 +1,17 @@
 import { useAddContactsSheet } from "@/app/(tabs)/_layout";
 import Background from "@/components/BackGround";
 import CustomInput from "@/components/CustomInput";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import Reels from "@/components/reels";
 import ChatRowSkeleton from "@/components/skeleton/ChatRowSkeleton";
 import ChatsHeaderSkeleton from "@/components/skeleton/ChatsHeaderSkeleton";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   deleteLocalContact,
+  getLastMessageByContact,
   getLocalContacts,
+  type LastMessageInfo,
   saveLocalContacts,
 } from "@/lib/database";
 import { Contact, contactsService } from "@/services/contacts";
@@ -16,7 +19,7 @@ import { registerAndSyncPushToken } from "@/utils/notification";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image as ExpoImage } from "expo-image";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import React, {
   useCallback,
   useEffect,
@@ -94,10 +97,12 @@ function RightAction({
 
 function ChatRow({
   item,
+  lastMessage,
   onDelete,
   onPress,
 }: {
   item: Contact;
+  lastMessage?: LastMessageInfo;
   onDelete: (id: string) => void;
   onPress: (id: string) => void;
 }) {
@@ -158,47 +163,34 @@ function ChatRow({
                 { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
               ]}
             >
-              <Text
-                style={[
-                  styles.chatInitialsText,
-                  { color: isDark ? "#fff" : "#6C56FF" },
-                ]}
-              >
-                {getInitials(item.name)}
-              </Text>
+              <Ionicons name="person" size={22} color={isDark ? "#fff" : "#6C56FF"} />
             </View>
           )}
         </View>
 
         <View style={styles.chatMid}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Text
+              style={[styles.chatName, { color: isDark ? "#fff" : "#1A1A2E" }]}
+              numberOfLines={1}
+            >
+              {item.name}
+            </Text>
+            {item.isPremium && <VerifiedBadge size={15} />}
+          </View>
           <Text
-            style={[
-              styles.chatName,
-              { color: isDark ? "#fff" : "#1A1A2E" },
-            ]}
+            style={[styles.chatMessage, { color: isDark ? "#888" : "#6B7280" }]}
             numberOfLines={1}
           >
-            {item.name}
-          </Text>
-          <Text
-            style={[
-              styles.chatMessage,
-              { color: isDark ? "#888" : "#6B7280" },
-            ]}
-            numberOfLines={1}
-          >
-            {item.bio}
+            {lastMessage?.content ?? item.bio}
           </Text>
         </View>
 
         <View style={styles.chatRight}>
           <Text
-            style={[
-              styles.chatTime,
-              { color: isDark ? "#888" : "#9CA3AF" },
-            ]}
+            style={[styles.chatTime, { color: isDark ? "#888" : "#9CA3AF" }]}
           >
-            {formatTime(item.addedAt)}
+            {formatTime(lastMessage?.createdAt ?? item.addedAt)}
           </Text>
         </View>
       </TouchableOpacity>
@@ -223,38 +215,20 @@ function ChatsHeader({
     <View style={styles.chatsHeader}>
       <View style={styles.chatsTitleRow}>
         <Text
-          style={[
-            styles.chatsTitle,
-            { color: isDark ? "#fff" : "#1A1A2E" },
-          ]}
+          style={[styles.chatsTitle, { color: isDark ? "#fff" : "#1A1A2E" }]}
         >
           Chats
         </Text>
         <TouchableOpacity
-          style={[
-            styles.addCharacterButton,
-            {
-              backgroundColor: isDark
-                ? "rgba(255,255,255,0.08)"
-                : "rgba(108,86,255,0.1)",
-            },
-          ]}
+          style={[styles.addCharacterButton]}
           activeOpacity={0.7}
           onPress={onAddPress}
         >
           <Ionicons
             name="person-add-outline"
-            size={18}
+            size={22}
             color={isDark ? "#fff" : "#6C56FF"}
           />
-          <Text
-            style={[
-              styles.addCharacterText,
-              { color: isDark ? "#fff" : "#6C56FF" },
-            ]}
-          >
-            Add
-          </Text>
         </TouchableOpacity>
       </View>
       {showSearch && (
@@ -277,7 +251,14 @@ export default function Index() {
   const router = useRouter();
   const { openAddContacts } = useAddContactsSheet();
   const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState(0);
   const isDark = useColorScheme() === "dark";
+
+  useFocusEffect(
+    useCallback(() => {
+      setSortKey((k) => k + 1);
+    }, []),
+  );
 
   useEffect(() => {
     registerAndSyncPushToken();
@@ -304,11 +285,24 @@ export default function Index() {
     },
   });
 
+  const lastMessages = useMemo(
+    () => getLastMessageByContact(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [contacts, sortKey],
+  );
+
   const filteredContacts = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return contacts;
-    return contacts.filter((c) => c.name.toLowerCase().includes(q));
-  }, [contacts, search]);
+    const filtered = q
+      ? contacts.filter((c) => c.name.toLowerCase().includes(q))
+      : [...contacts];
+
+    return filtered.sort((a, b) => {
+      const aTime = lastMessages.get(a.id)?.createdAt || a.addedAt;
+      const bTime = lastMessages.get(b.id)?.createdAt || b.addedAt;
+      return new Date(bTime).getTime() - new Date(aTime).getTime();
+    });
+  }, [contacts, search, lastMessages]);
 
   const deleteContact = useCallback(
     async (id: string) => {
@@ -341,7 +335,7 @@ export default function Index() {
 
   const onRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["contacts"] });
-    queryClient.invalidateQueries({ queryKey: ["stories"] });
+    setSortKey((k) => k + 1);
   }, [queryClient]);
 
   return (
@@ -371,6 +365,7 @@ export default function Index() {
               renderItem={({ item }) => (
                 <ChatRow
                   item={item}
+                  lastMessage={lastMessages.get(item.id)}
                   onDelete={deleteContact}
                   onPress={openChat}
                 />
@@ -410,7 +405,7 @@ export default function Index() {
                       size={18}
                       color="#fff"
                     />
-                    <Text style={styles.emptyAddText}>Add Character</Text>
+                    <Text style={styles.emptyAddText}>Add Characters</Text>
                   </TouchableOpacity>
                 </View>
               }

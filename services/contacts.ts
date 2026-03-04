@@ -5,8 +5,9 @@ export interface Contact {
   id: string;
   name: string;
   slug: string;
-  avatar: string;
+  avatar: string | null;
   bio: string;
+  isPremium: boolean;
   addedAt: string;
 }
 
@@ -19,8 +20,9 @@ export interface AvailableContact {
   id: string;
   name: string;
   slug: string;
-  avatar: string;
+  avatar: string | null;
   bio: string;
+  isPremium: boolean;
 }
 
 export const contactsService = {
@@ -40,8 +42,10 @@ export const contactsService = {
   },
 
   getAvailableContacts: async (): Promise<AvailableContact[]> => {
-    const { data } =
-      await api.get<ApiResponse<AvailableContact[]>>("/contacts/available");
+    const { data } = await api.get<ApiResponse<AvailableContact[]>>(
+      "/contacts/available",
+    );
+    console.log(data.data);
     return data.data;
   },
 

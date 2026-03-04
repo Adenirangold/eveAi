@@ -1,4 +1,5 @@
 import type { Story } from "@/services/stories";
+import VerifiedBadge from "./VerifiedBadge";
 import { LinearGradient } from "expo-linear-gradient";
 import React, {
   useCallback,
@@ -43,6 +44,7 @@ interface Props {
   initialIndex: number;
   visible: boolean;
   onClose: () => void;
+  onStoryViewed?: (storyId: string) => void;
 }
 
 export default function StoryViewer({
@@ -50,6 +52,7 @@ export default function StoryViewer({
   initialIndex,
   visible,
   onClose,
+  onStoryViewed,
 }: Props) {
   const insets = useSafeAreaInsets();
   const safeIndex = Math.min(
@@ -107,7 +110,11 @@ export default function StoryViewer({
   }, [visible, safeIndex]);
 
   useEffect(() => {
-    if (visible) startProgress();
+    if (visible) {
+      startProgress();
+      const story = stories[currentIndex];
+      if (story && onStoryViewed) onStoryViewed(story.id);
+    }
   }, [currentIndex, visible, startProgress]);
 
   // ── Pan gesture (UI thread) ─────────────────────────
@@ -266,6 +273,7 @@ export default function StoryViewer({
                   contentFit="cover"
                 />
                 <Text style={vs.hName}>{story.contact.name}</Text>
+                {story.contact.isPremium && <VerifiedBadge size={14} />}
                 <Text style={vs.hTime}>{timeAgo(story.createdAt)}</Text>
               </View>
               <TouchableOpacity

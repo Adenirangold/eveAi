@@ -1,4 +1,5 @@
 import Background from "@/components/BackGround";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getLocalContactById } from "@/lib/database";
 import { contactsService, type AvailableContact } from "@/services/contacts";
@@ -86,24 +87,20 @@ export default function ContactProfileScreen() {
                   { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
                 ]}
               >
-                <Text
-                  style={[
-                    styles.avatarInitials,
-                    { color: isDark ? "#fff" : "#6C56FF" },
-                  ]}
-                >
-                  {getInitials(contact.name)}
-                </Text>
+                <Ionicons name="person" size={40} color={isDark ? "#fff" : "#6C56FF"} />
               </View>
             )}
-            <Text
-              style={[
-                styles.name,
-                { color: isDark ? "#fff" : "#1A1A2E" },
-              ]}
-            >
-              {contact.name}
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text
+                style={[
+                  styles.name,
+                  { color: isDark ? "#fff" : "#1A1A2E" },
+                ]}
+              >
+                {contact.name}
+              </Text>
+              {contact.isPremium && <VerifiedBadge size={20} />}
+            </View>
             <Text style={styles.slug}>@{contact.slug}</Text>
           </View>
 

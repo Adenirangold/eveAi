@@ -24,38 +24,60 @@ function getDb(): SQLiteDatabase | null {
   if (!_db) {
     _db = openDatabaseSync(`eveai-${_currentUserId}.db`);
 
+    _db.execSync(`CREATE TABLE IF NOT EXISTS _meta (key TEXT PRIMARY KEY, value TEXT)`);
+
+    const schemaVersion =
+      _db.getFirstSync<{ value: string }>(`SELECT value FROM _meta WHERE key = 'schema_version'`)
+        ?.value ?? "0";
+
+    if (parseInt(schemaVersion, 10) < 3) {
+      _db.execSync(`DROP TABLE IF EXISTS contacts`);
+      _db.execSync(`DROP TABLE IF EXISTS available_contacts`);
+      _db.execSync(`DROP TABLE IF EXISTS stories`);
+      _db.execSync(`INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_version', '3')`);
+    }
+
     _db.execSync(`
       CREATE TABLE IF NOT EXISTS contacts (
-        id       TEXT PRIMARY KEY NOT NULL,
-        name     TEXT NOT NULL,
-        slug     TEXT NOT NULL,
-        avatar   TEXT NOT NULL,
-        bio      TEXT NOT NULL,
-        addedAt  TEXT NOT NULL
+        id        TEXT PRIMARY KEY NOT NULL,
+        name      TEXT NOT NULL,
+        slug      TEXT NOT NULL,
+        avatar    TEXT,
+        bio       TEXT NOT NULL,
+        isPremium INTEGER NOT NULL DEFAULT 0,
+        addedAt   TEXT NOT NULL
       )
     `);
 
     _db.execSync(`
       CREATE TABLE IF NOT EXISTS available_contacts (
-        id       TEXT PRIMARY KEY NOT NULL,
-        name     TEXT NOT NULL,
-        slug     TEXT NOT NULL,
-        avatar   TEXT NOT NULL,
-        bio      TEXT NOT NULL
+        id        TEXT PRIMARY KEY NOT NULL,
+        name      TEXT NOT NULL,
+        slug      TEXT NOT NULL,
+        avatar    TEXT,
+        bio       TEXT NOT NULL,
+        isPremium INTEGER NOT NULL DEFAULT 0
       )
     `);
 
     _db.execSync(`
       CREATE TABLE IF NOT EXISTS stories (
-        id             TEXT PRIMARY KEY NOT NULL,
-        content        TEXT NOT NULL,
-        backgroundColor TEXT NOT NULL,
-        createdAt      TEXT NOT NULL,
-        expiresAt      TEXT NOT NULL,
-        contactId      TEXT NOT NULL,
-        contactName    TEXT NOT NULL,
-        contactSlug    TEXT NOT NULL,
-        contactAvatar  TEXT NOT NULL
+        id                TEXT PRIMARY KEY NOT NULL,
+        content           TEXT NOT NULL,
+        backgroundColor   TEXT NOT NULL,
+        createdAt         TEXT NOT NULL,
+        expiresAt         TEXT NOT NULL,
+        contactId         TEXT NOT NULL,
+        contactName       TEXT NOT NULL,
+        contactSlug       TEXT NOT NULL,
+        contactAvatar     TEXT,
+        contactIsPremium  INTEGER NOT NULL DEFAULT 0
+      )
+    `);
+
+    _db.execSync(`
+      CREATE TABLE IF NOT EXISTS viewed_stories (
+        storyId  TEXT PRIMARY KEY NOT NULL
       )
     `);
 
@@ -84,9 +106,9 @@ function getDb(): SQLiteDatabase | null {
 export function getLocalContacts(): Contact[] {
   const db = getDb();
   if (!db) return [];
-  return db.getAllSync<Contact>(
-    "SELECT * FROM contacts ORDER BY addedAt DESC",
-  );
+  return db
+    .getAllSync<any>("SELECT * FROM contacts ORDER BY addedAt DESC")
+    .map((r) => ({ ...r, isPremium: !!r.isPremium }));
 }
 
 export function saveLocalContacts(contacts: Contact[]): void {
@@ -96,8 +118,8 @@ export function saveLocalContacts(contacts: Contact[]): void {
     db.runSync("DELETE FROM contacts");
     for (const c of contacts) {
       db.runSync(
-        "INSERT INTO contacts (id, name, slug, avatar, bio, addedAt) VALUES (?, ?, ?, ?, ?, ?)",
-        [c.id, c.name, c.slug, c.avatar, c.bio, c.addedAt],
+        "INSERT INTO contacts (id, name, slug, avatar, bio, isPremium, addedAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [c.id, c.name, c.slug, c.avatar, c.bio, c.isPremium ? 1 : 0, c.addedAt],
       );
     }
   });
@@ -106,10 +128,8 @@ export function saveLocalContacts(contacts: Contact[]): void {
 export function getLocalContactById(id: string): Contact | null {
   const db = getDb();
   if (!db) return null;
-  return (
-    db.getFirstSync<Contact>("SELECT * FROM contacts WHERE id = ?", [id]) ??
-    null
-  );
+  const r = db.getFirstSync<any>("SELECT * FROM contacts WHERE id = ?", [id]);
+  return r ? { ...r, isPremium: !!r.isPremium } : null;
 }
 
 export function deleteLocalContact(id: string): void {
@@ -123,9 +143,9 @@ export function deleteLocalContact(id: string): void {
 export function getLocalAvailableContacts(): AvailableContact[] {
   const db = getDb();
   if (!db) return [];
-  return db.getAllSync<AvailableContact>(
-    "SELECT * FROM available_contacts ORDER BY name ASC",
-  );
+  return db
+    .getAllSync<any>("SELECT * FROM available_contacts ORDER BY name ASC")
+    .map((r) => ({ ...r, isPremium: !!r.isPremium }));
 }
 
 export function saveLocalAvailableContacts(contacts: AvailableContact[]): void {
@@ -135,8 +155,8 @@ export function saveLocalAvailableContacts(contacts: AvailableContact[]): void {
     db.runSync("DELETE FROM available_contacts");
     for (const c of contacts) {
       db.runSync(
-        "INSERT INTO available_contacts (id, name, slug, avatar, bio) VALUES (?, ?, ?, ?, ?)",
-        [c.id, c.name, c.slug, c.avatar, c.bio],
+        "INSERT INTO available_contacts (id, name, slug, avatar, bio, isPremium) VALUES (?, ?, ?, ?, ?, ?)",
+        [c.id, c.name, c.slug, c.avatar, c.bio, c.isPremium ? 1 : 0],
       );
     }
   });
@@ -154,6 +174,7 @@ interface StoryRow {
   contactName: string;
   contactSlug: string;
   contactAvatar: string;
+  contactIsPremium: number;
 }
 
 function rowToStory(row: StoryRow): Story {
@@ -168,6 +189,7 @@ function rowToStory(row: StoryRow): Story {
       name: row.contactName,
       slug: row.contactSlug,
       avatar: row.contactAvatar,
+      isPremium: !!row.contactIsPremium,
     },
   };
 }
@@ -187,7 +209,7 @@ export function saveLocalStories(stories: Story[]): void {
     db.runSync("DELETE FROM stories");
     for (const s of stories) {
       db.runSync(
-        "INSERT INTO stories (id, content, backgroundColor, createdAt, expiresAt, contactId, contactName, contactSlug, contactAvatar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO stories (id, content, backgroundColor, createdAt, expiresAt, contactId, contactName, contactSlug, contactAvatar, contactIsPremium) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           s.id,
           s.content,
@@ -198,10 +220,31 @@ export function saveLocalStories(stories: Story[]): void {
           s.contact.name,
           s.contact.slug,
           s.contact.avatar,
+          s.contact.isPremium ? 1 : 0,
         ],
       );
     }
   });
+}
+
+// ── Viewed Stories ───────────────────────────────────
+
+export function getViewedStoryIds(): Set<string> {
+  const db = getDb();
+  if (!db) return new Set();
+  const rows = db.getAllSync<{ storyId: string }>(
+    "SELECT storyId FROM viewed_stories",
+  );
+  return new Set(rows.map((r) => r.storyId));
+}
+
+export function markStoryViewed(storyId: string): void {
+  const db = getDb();
+  if (!db) return;
+  db.runSync(
+    "INSERT OR IGNORE INTO viewed_stories (storyId) VALUES (?)",
+    [storyId],
+  );
 }
 
 // ── Messages ────────────────────────────────────────
@@ -239,6 +282,33 @@ export function upsertLocalMessages(messages: ChatMessage[]): void {
   });
 }
 
+// ── Last message per contact ─────────────────────────
+
+export interface LastMessageInfo {
+  content: string;
+  createdAt: string;
+}
+
+export function getLastMessageByContact(): Map<string, LastMessageInfo> {
+  const db = getDb();
+  if (!db) return new Map();
+  const rows = db.getAllSync<{
+    contactId: string;
+    content: string;
+    createdAt: string;
+  }>(
+    `SELECT m.contactId, m.content, m.createdAt
+     FROM messages m
+     INNER JOIN (
+       SELECT contactId, MAX(createdAt) AS maxTime
+       FROM messages GROUP BY contactId
+     ) latest ON m.contactId = latest.contactId AND m.createdAt = latest.maxTime`,
+  );
+  return new Map(
+    rows.map((r) => [r.contactId, { content: r.content, createdAt: r.createdAt }]),
+  );
+}
+
 // ── Clear all ───────────────────────────────────────
 
 export function clearDatabase(): void {
@@ -248,6 +318,7 @@ export function clearDatabase(): void {
     db.runSync("DELETE FROM contacts");
     db.runSync("DELETE FROM available_contacts");
     db.runSync("DELETE FROM stories");
+    db.runSync("DELETE FROM viewed_stories");
     db.runSync("DELETE FROM messages");
   });
 }

@@ -2,6 +2,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getLocalStories, saveLocalStories } from "@/lib/database";
 import type { Story } from "@/services/stories";
 import { storiesService } from "@/services/stories";
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import React, {
@@ -19,6 +20,7 @@ import {
 import { Image as ExpoImage } from "expo-image";
 import ReelsSkeleton from "./skeleton/ReelsSkeleton";
 import StoryViewer from "./StoryViewer";
+import VerifiedBadge from "./VerifiedBadge";
 
 export interface ReelsHandle {
   refetch: () => void;
@@ -73,27 +75,23 @@ function ReelAvatar({ item, onPress }: { item: Story; onPress: () => void }) {
                 { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
               ]}
             >
-              <Text
-                style={[
-                  styles.initialsText,
-                  { color: isDark ? "#fff" : "#6C56FF" },
-                ]}
-              >
-                {getInitials(item.contact.name)}
-              </Text>
+              <Ionicons name="person" size={22} color={isDark ? "#fff" : "#6C56FF"} />
             </View>
           )}
         </View>
       </LinearGradient>
-      <Text
-        style={[
-          styles.reelName,
-          { color: isDark ? "#ccc" : "#4B5563" },
-        ]}
-        numberOfLines={1}
-      >
-        {item.contact.name}
-      </Text>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
+        <Text
+          style={[
+            styles.reelName,
+            { color: isDark ? "#ccc" : "#4B5563" },
+          ]}
+          numberOfLines={1}
+        >
+          {item.contact.name}
+        </Text>
+        {item.contact.isPremium && <VerifiedBadge size={11} />}
+      </View>
     </TouchableOpacity>
   );
 }

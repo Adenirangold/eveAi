@@ -4,7 +4,8 @@ export interface StoryContact {
   id: string;
   name: string;
   slug: string;
-  avatar: string;
+  avatar: string | null;
+  isPremium: boolean;
 }
 
 export interface Story {

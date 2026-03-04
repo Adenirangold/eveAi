@@ -1,3 +1,4 @@
+import VerifiedBadge from "@/components/VerifiedBadge";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ChatMessage, chatService } from "@/services/chat";
 import { Contact } from "@/services/contacts";
@@ -16,6 +17,7 @@ import React, {
 } from "react";
 import {
   Animated,
+  FlatList as RNFlatList,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -139,6 +141,13 @@ export default function ChatScreen() {
   const [isSending, setIsSending] = useState(false);
   const [inputText, setInputText] = useState("");
   const inputRef = useRef<TextInput>(null);
+  const flatListRef = useRef<RNFlatList>(null);
+
+  const scrollToEnd = useCallback(() => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    }, 100);
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -210,6 +219,7 @@ export default function ChatScreen() {
       ...old,
       optimisticMsg,
     ]);
+    scrollToEnd();
 
     try {
       const { userMessage, assistantMessage } = await chatService.sendMessage(
@@ -221,12 +231,13 @@ export default function ChatScreen() {
         const withoutOptimistic = old.filter((m) => m.id !== tempId);
         return [...withoutOptimistic, userMessage, assistantMessage];
       });
+      scrollToEnd();
     } catch {
       queryClient.invalidateQueries({ queryKey: ["chat", id] });
     } finally {
       setIsSending(false);
     }
-  }, [id, inputText, queryClient]);
+  }, [id, inputText, queryClient, scrollToEnd]);
 
   const onGiftedSend = useCallback(
     (newMessages: IMessage[] = []) => {
@@ -285,14 +296,7 @@ export default function ChatScreen() {
             { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
           ]}
         >
-          <Text
-            style={[
-              styles.bubbleAvatarText,
-              { color: isDark ? "#fff" : "#6C56FF" },
-            ]}
-          >
-            {getInitials(contact?.name ?? "AI")}
-          </Text>
+          <Ionicons name="person" size={14} color={isDark ? "#fff" : "#6C56FF"} />
         </View>
       );
     },
@@ -404,25 +408,21 @@ export default function ChatScreen() {
                   { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
                 ]}
               >
-                <Text
-                  style={[
-                    styles.initialsText,
-                    { color: isDark ? "#fff" : "#6C56FF" },
-                  ]}
-                >
-                  {getInitials(contact.name)}
-                </Text>
+                <Ionicons name="person" size={18} color={isDark ? "#fff" : "#6C56FF"} />
               </View>
             )}
             <View>
-              <Text
-                style={[
-                  styles.headerName,
-                  { color: isDark ? "#fff" : "#1A1A2E" },
-                ]}
-              >
-                {contact.name}
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text
+                  style={[
+                    styles.headerName,
+                    { color: isDark ? "#fff" : "#1A1A2E" },
+                  ]}
+                >
+                  {contact.name}
+                </Text>
+                {contact.isPremium && <VerifiedBadge size={16} />}
+              </View>
               <Text style={styles.headerStatus}>
                 {isSending ? "Typing..." : "Online"}
               </Text>
@@ -510,6 +510,7 @@ export default function ChatScreen() {
           }}
           keyboardAvoidingViewProps={{ enabled: false }}
           listProps={{
+            ref: flatListRef,
             keyboardDismissMode: "on-drag" as const,
             keyboardShouldPersistTaps: "handled" as const,
           }}

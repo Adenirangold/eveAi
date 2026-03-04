@@ -4,22 +4,23 @@ import FormError from "@/components/FormError";
 import icons from "@/constants/icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
-  useChangePassword,
   useLogout,
   useProfile,
+  useRequestDeletion,
+  useResources,
+  useUpdateFullName,
   useUpdateUsername,
 } from "@/hooks/useAuth";
 import { useNotificationToggle } from "@/hooks/useNotifications";
 import { useThemeStore } from "@/store/theme-store";
-import { changePasswordSchema } from "@/validation/schema";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -29,16 +30,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-function getInitials(email?: string, username?: string | null): string {
-  if (username) {
-    return username
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  }
-  return email ? email[0].toUpperCase() : "?";
+function getInitials(name?: string | null): string {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 function formatDate(dateStr?: string): string {
@@ -51,8 +50,10 @@ function formatDate(dateStr?: string): string {
 
 export default function Profile() {
   const { data: profile, isLoading } = useProfile();
+  const updateFullName = useUpdateFullName();
   const updateUsername = useUpdateUsername();
-  const changePassword = useChangePassword();
+  const requestDeletion = useRequestDeletion();
+  const { data: resources } = useResources();
   const logout = useLogout();
 
   const colorScheme = useColorScheme();
@@ -64,81 +65,43 @@ export default function Profile() {
   };
 
   const notifications = useNotificationToggle();
+  const [fullName, setFullName] = useState("");
+  const [isEditingName, setIsEditingName] = useState(false);
   const [username, setUsername] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
 
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
-
-  const [showCurrentPw, setShowCurrentPw] = useState(false);
-  const [showNewPw, setShowNewPw] = useState(false);
-  const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [isDeletionSuccess, setIsDeletionSuccess] = useState(false);
 
   useEffect(() => {
-    if (profile?.username) {
-      setUsername(profile.username);
+    if (profile?.name) setFullName(profile.name);
+    if (profile?.username) setUsername(profile.username);
+  }, [profile?.name, profile?.username]);
+
+  const handleSaveFullName = () => {
+    const trimmed = fullName.trim();
+    if (!trimmed) return;
+    if (trimmed === profile?.name) {
+      setIsEditingName(false);
+      return;
     }
-  }, [profile?.username]);
+
+    updateFullName.mutate(trimmed, {
+      onSuccess: () => setIsEditingName(false),
+    });
+  };
 
   const handleSaveUsername = () => {
     const trimmed = username.trim();
     if (!trimmed) return;
     if (trimmed === profile?.username) {
-      setIsEditing(false);
+      setIsEditingUsername(false);
       return;
     }
 
     updateUsername.mutate(trimmed, {
-      onSuccess: () => setIsEditing(false),
+      onSuccess: () => setIsEditingUsername(false),
     });
-  };
-
-  const resetPasswordForm = () => {
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmNewPassword("");
-    setPasswordError("");
-    setPasswordSuccess(false);
-    setShowCurrentPw(false);
-    setShowNewPw(false);
-    setShowConfirmPw(false);
-  };
-
-  const handleChangePassword = () => {
-    setPasswordError("");
-    setPasswordSuccess(false);
-
-    const result = changePasswordSchema.safeParse({
-      currentPassword,
-      newPassword,
-      confirmNewPassword,
-    });
-
-    if (!result.success) {
-      setPasswordError(result.error.issues[0].message);
-      return;
-    }
-
-    changePassword.mutate(
-      { currentPassword, newPassword },
-      {
-        onSuccess: () => {
-          setPasswordSuccess(true);
-          setTimeout(() => {
-            setIsChangingPassword(false);
-            resetPasswordForm();
-          }, 1500);
-        },
-        onError: (err) => {
-          setPasswordError(err.message);
-        },
-      },
-    );
   };
 
   const handleLogout = async () => {
@@ -146,7 +109,8 @@ export default function Profile() {
     router.replace("/(auth)/sign-in");
   };
 
-  const PRIVACY_URL = "https://eve-ai.api.openhvn.dev/privacy";
+  const privacyUrl = resources?.privacyUrl ?? "https://binahstudio.com";
+  const policyUrl = resources?.policyUrl ?? "https://binahstudio.com";
 
   const cardBg = isDark ? "#1F1D35" : "#FFFFFF";
   const cardBorder = isDark
@@ -171,8 +135,6 @@ export default function Profile() {
       </Background>
     );
   }
-
-  const initials = getInitials(profile?.email, profile?.username);
 
   return (
     <Background>
@@ -213,22 +175,22 @@ export default function Profile() {
                 end={{ x: 1, y: 1 }}
               >
                 <Text className="font-OutfitBold text-4xl text-white">
-                  {initials}
+                  {getInitials(profile?.name)}
                 </Text>
               </LinearGradient>
             </View>
 
             <Pressable
-              onPress={() => setIsEditing(true)}
+              onPress={() => setIsEditingName(true)}
               className="flex-row items-center gap-2"
             >
               <Text
                 className="font-OutfitSemiBold text-2xl"
                 style={{ color: valueColor }}
               >
-                {profile?.username ?? "Set username"}
+                {profile?.name ?? "Set name"}
               </Text>
-              <Ionicons name="pencil" size={16} color="#6C56FF" />
+              <Ionicons name="pencil" size={14} color="#6C56FF" />
             </Pressable>
 
             <Text
@@ -241,11 +203,40 @@ export default function Profile() {
 
           {/* Info Cards */}
           <View className="px-5 gap-3">
-            {/* Account Status */}
+            {/* Account Section */}
+            <Text
+              className="font-OutfitSemiBold text-xs uppercase tracking-wider mt-2"
+              style={{ color: labelColor, letterSpacing: 1 }}
+            >
+              Account
+            </Text>
             <View
               className="rounded-2xl"
               style={[{ backgroundColor: cardBg }, cardBorder]}
             >
+              <Pressable
+                onPress={() => setIsEditingUsername(true)}
+                className="flex-row items-center px-5 py-4"
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              >
+                <View className="w-9 h-9 rounded-xl bg-[#6C56FF]/10 items-center justify-center mr-4">
+                  <Ionicons name="at-outline" size={18} color="#6C56FF" />
+                </View>
+                <Text
+                  className="font-OutfitMedium text-sm flex-1"
+                  style={{ color: labelColor }}
+                >
+                  Username
+                </Text>
+                <Text
+                  className="font-OutfitMedium text-sm mr-2"
+                  style={{ color: valueColor }}
+                >
+                  {profile?.username ?? "—"}
+                </Text>
+                <Ionicons name="pencil" size={14} color="#6C56FF" />
+              </Pressable>
+              <Separator color={separatorColor} />
               <InfoRow
                 icon="shield-checkmark-outline"
                 labelColor={labelColor}
@@ -289,7 +280,13 @@ export default function Profile() {
               />
             </View>
 
-            {/* Notifications */}
+            {/* Settings Section */}
+            <Text
+              className="font-OutfitSemiBold text-xs uppercase tracking-wider mt-4"
+              style={{ color: labelColor, letterSpacing: 1 }}
+            >
+              Settings
+            </Text>
             <View
               className="rounded-2xl"
               style={[{ backgroundColor: cardBg }, cardBorder]}
@@ -306,7 +303,7 @@ export default function Profile() {
                   className="font-OutfitMedium text-sm flex-1"
                   style={{ color: labelColor }}
                 >
-                  Push Notifications
+                  Notification
                 </Text>
                 <CustomSwitch
                   value={notifications.isEnabled}
@@ -317,24 +314,9 @@ export default function Profile() {
                   scale={0.8}
                 />
               </View>
-              <View className="px-5 pb-4">
-                <Text
-                  className="font-Outfit text-sm"
-                  style={{ color: descColor }}
-                >
-                  This enables you to receive notifications when your favourite
-                  Bible character sends a message.
-                </Text>
-              </View>
-            </View>
-
-            {/* Security & Privacy */}
-            <View
-              className="rounded-2xl"
-              style={[{ backgroundColor: cardBg }, cardBorder]}
-            >
+              <Separator color={separatorColor} />
               <Pressable
-                onPress={() => setIsChangingPassword(true)}
+                onPress={() => router.push("/change-password")}
                 className="flex-row items-center px-5 py-4"
                 style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
@@ -349,11 +331,40 @@ export default function Profile() {
                 </Text>
                 <Ionicons name="chevron-forward" size={16} color={chevronColor} />
               </Pressable>
+            </View>
+
+            {/* More Section */}
+            <Text
+              className="font-OutfitSemiBold text-xs uppercase tracking-wider mt-4"
+              style={{ color: labelColor, letterSpacing: 1 }}
+            >
+              Terms & Conditions
+            </Text>
+            <View
+              className="rounded-2xl"
+              style={[{ backgroundColor: cardBg }, cardBorder]}
+            >
+              <Pressable
+                onPress={() => WebBrowser.openBrowserAsync(privacyUrl)}
+                className="flex-row items-center px-5 py-4"
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              >
+                <View className="w-9 h-9 rounded-xl bg-[#6C56FF]/10 items-center justify-center mr-4">
+                  <Ionicons name="shield-outline" size={18} color="#6C56FF" />
+                </View>
+                <Text
+                  className="font-OutfitMedium text-sm flex-1"
+                  style={{ color: labelColor }}
+                >
+                  Privacy Terms
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color={chevronColor} />
+              </Pressable>
 
               <Separator color={separatorColor} />
 
               <Pressable
-                onPress={() => Linking.openURL(PRIVACY_URL)}
+                onPress={() => WebBrowser.openBrowserAsync(policyUrl)}
                 className="flex-row items-center px-5 py-4"
                 style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
@@ -364,65 +375,152 @@ export default function Profile() {
                   className="font-OutfitMedium text-sm flex-1"
                   style={{ color: labelColor }}
                 >
-                  Privacy Policy
+                  Policy Terms
                 </Text>
                 <Ionicons name="chevron-forward" size={16} color={chevronColor} />
               </Pressable>
             </View>
 
-            {/* Logout */}
-            <Pressable
-              onPress={handleLogout}
-              className="rounded-2xl flex-row items-center px-5 py-4 mt-4"
-              style={[
-                { backgroundColor: cardBg },
-                cardBorder,
-                ({ pressed }: { pressed: boolean }) => ({
-                  opacity: pressed ? 0.7 : 1,
-                }),
-              ]}
+            {/* Delete & Logout */}
+            <View
+              className="rounded-2xl mt-4"
+              style={[{ backgroundColor: cardBg }, cardBorder]}
             >
-              <View className="w-9 h-9 rounded-xl bg-[#DC2626]/10 items-center justify-center mr-4">
-                <Image
-                  source={icons.logout}
-                  style={{ width: 18, height: 18, tintColor: "#DC2626" }}
-                  resizeMode="contain"
-                />
-              </View>
-              <Text className="font-OutfitMedium text-base text-[#DC2626] flex-1">
-                Log out
-              </Text>
-            </Pressable>
-
-            {/* Delete Account */}
-            <Pressable
-              onPress={() => setIsDeleteModalVisible(true)}
-              className="rounded-2xl flex-row items-center px-5 py-4 mt-3"
-              style={[
-                { backgroundColor: cardBg },
-                cardBorder,
-                ({ pressed }: { pressed: boolean }) => ({
-                  opacity: pressed ? 0.7 : 1,
-                }),
-              ]}
-            >
-              <View className="w-9 h-9 rounded-xl bg-[#DC2626]/10 items-center justify-center mr-4">
-                <Ionicons name="trash-outline" size={18} color="#DC2626" />
-              </View>
-              <Text className="font-OutfitMedium text-base text-[#DC2626] flex-1">
-                Request Account Deletion
-              </Text>
-            </Pressable>
+              <Pressable
+                onPress={() => setIsDeleteModalVisible(true)}
+                className="flex-row items-center px-5 py-4"
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              >
+                <View className="w-9 h-9 rounded-xl bg-[#6C56FF]/10 items-center justify-center mr-4">
+                  <Ionicons name="trash-outline" size={18} color="#6C56FF" />
+                </View>
+                <Text
+                  className="font-OutfitMedium text-sm flex-1"
+                  style={{ color: labelColor }}
+                >
+                  Request Account Deletion
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color={chevronColor} />
+              </Pressable>
+              <Separator color={separatorColor} />
+              <Pressable
+                onPress={handleLogout}
+                className="flex-row items-center px-5 py-4"
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              >
+                <View className="w-9 h-9 rounded-xl bg-[#DC2626]/10 items-center justify-center mr-4">
+                  <Image
+                    source={icons.logout}
+                    style={{ width: 18, height: 18, tintColor: "#DC2626" }}
+                    resizeMode="contain"
+                  />
+                </View>
+                <Text className="font-OutfitMedium text-sm text-[#DC2626] flex-1">
+                  Log out
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </ScrollView>
 
-        {/* Update Username Modal */}
+        {/* Update Name Modal */}
         <Modal
-          visible={isEditing}
+          visible={isEditingName}
           transparent
           animationType="fade"
           onRequestClose={() => {
-            setIsEditing(false);
+            setIsEditingName(false);
+            setFullName(profile?.name ?? "");
+          }}
+        >
+          <Pressable
+            className="flex-1 items-center justify-center"
+            style={{
+              backgroundColor: isDark
+                ? "rgba(0,0,0,0.6)"
+                : "rgba(0,0,0,0.3)",
+            }}
+            onPress={() => {
+              setIsEditingName(false);
+              setFullName(profile?.name ?? "");
+            }}
+          >
+            <Pressable
+              className="rounded-3xl w-[85%] max-w-[340px] p-6"
+              style={{ backgroundColor: modalBg }}
+              onPress={() => {}}
+            >
+              <Text
+                className="font-OutfitSemiBold text-xl text-center mb-2"
+                style={{ color: valueColor }}
+              >
+                Update Your Name
+              </Text>
+              <Text
+                className="font-Outfit text-sm text-center mb-6"
+                style={{ color: subtextColor }}
+              >
+                Choose a name that others will see
+              </Text>
+
+              <TextInput
+                value={fullName}
+                onChangeText={setFullName}
+                autoFocus
+                autoCapitalize="words"
+                className="font-OutfitMedium text-base rounded-xl px-4 py-3.5 mb-3"
+                style={{
+                  color: valueColor,
+                  backgroundColor: inputBg,
+                  borderWidth: 1,
+                  borderColor: inputBorder,
+                }}
+                placeholderTextColor="#6B7280"
+                placeholder="Enter your full name"
+              />
+
+              <FormError message={updateFullName.error?.message ?? ""} />
+
+              <Pressable
+                onPress={handleSaveFullName}
+                disabled={updateFullName.isPending}
+                className="bg-[#6C56FF] rounded-xl py-3.5 items-center mt-2"
+                style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+              >
+                {updateFullName.isPending ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text className="font-OutfitSemiBold text-base text-white">
+                    Save
+                  </Text>
+                )}
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  setIsEditingName(false);
+                  setFullName(profile?.name ?? "");
+                }}
+                className="mt-3 py-2 items-center"
+              >
+                <Text
+                  className="font-OutfitMedium text-sm"
+                  style={{ color: subtextColor }}
+                >
+                  Cancel
+                </Text>
+              </Pressable>
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        {/* Update Username Modal */}
+        <Modal
+          visible={isEditingUsername}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            setIsEditingUsername(false);
             setUsername(profile?.username ?? "");
           }}
         >
@@ -434,7 +532,7 @@ export default function Profile() {
                 : "rgba(0,0,0,0.3)",
             }}
             onPress={() => {
-              setIsEditing(false);
+              setIsEditingUsername(false);
               setUsername(profile?.username ?? "");
             }}
           >
@@ -447,19 +545,20 @@ export default function Profile() {
                 className="font-OutfitSemiBold text-xl text-center mb-2"
                 style={{ color: valueColor }}
               >
-                Update Your Username
+                Update Username
               </Text>
               <Text
                 className="font-Outfit text-sm text-center mb-6"
                 style={{ color: subtextColor }}
               >
-                Choose a username that others will see
+                Choose a unique username
               </Text>
 
               <TextInput
                 value={username}
                 onChangeText={setUsername}
                 autoFocus
+                autoCapitalize="none"
                 className="font-OutfitMedium text-base rounded-xl px-4 py-3.5 mb-3"
                 style={{
                   color: valueColor,
@@ -490,7 +589,7 @@ export default function Profile() {
 
               <Pressable
                 onPress={() => {
-                  setIsEditing(false);
+                  setIsEditingUsername(false);
                   setUsername(profile?.username ?? "");
                 }}
                 className="mt-3 py-2 items-center"
@@ -506,14 +605,14 @@ export default function Profile() {
           </Pressable>
         </Modal>
 
-        {/* Change Password Modal */}
+        {/* Delete Account Modal */}
         <Modal
-          visible={isChangingPassword}
+          visible={isDeleteModalVisible}
           transparent
           animationType="fade"
           onRequestClose={() => {
-            setIsChangingPassword(false);
-            resetPasswordForm();
+            setIsDeleteModalVisible(false);
+            setIsDeletionSuccess(false);
           }}
         >
           <Pressable
@@ -524,8 +623,8 @@ export default function Profile() {
                 : "rgba(0,0,0,0.3)",
             }}
             onPress={() => {
-              setIsChangingPassword(false);
-              resetPasswordForm();
+              setIsDeleteModalVisible(false);
+              setIsDeletionSuccess(false);
             }}
           >
             <Pressable
@@ -533,152 +632,103 @@ export default function Profile() {
               style={{ backgroundColor: modalBg }}
               onPress={() => {}}
             >
-              <Text
-                className="font-OutfitSemiBold text-xl text-center mb-2"
-                style={{ color: valueColor }}
-              >
-                Change Password
-              </Text>
-              <Text
-                className="font-Outfit text-sm text-center mb-6"
-                style={{ color: subtextColor }}
-              >
-                Enter your current password and choose a new one
-              </Text>
-
-              {passwordSuccess ? (
-                <View className="items-center py-4">
-                  <View className="w-14 h-14 rounded-full bg-[#22C55E]/15 items-center justify-center mb-3">
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={36}
-                      color="#22C55E"
-                    />
+              {isDeletionSuccess ? (
+                <>
+                  <View className="items-center mb-4">
+                    <View className="w-14 h-14 rounded-full bg-[#22C55E]/15 items-center justify-center">
+                      <Ionicons name="checkmark-circle" size={36} color="#22C55E" />
+                    </View>
                   </View>
-                  <Text className="font-OutfitMedium text-base text-[#22C55E]">
-                    Password updated!
+                  <Text
+                    className="font-OutfitSemiBold text-lg text-center mb-2"
+                    style={{ color: valueColor }}
+                  >
+                    Request Submitted
                   </Text>
-                </View>
+                  <Text
+                    className="font-Outfit text-sm text-center mb-5"
+                    style={{ color: subtextColor }}
+                  >
+                    An admin will process your request.
+                  </Text>
+                  <Pressable
+                    onPress={() => {
+                      setIsDeleteModalVisible(false);
+                      setIsDeletionSuccess(false);
+                    }}
+                    className="rounded-xl py-3 items-center"
+                    style={[
+                      { backgroundColor: isDark ? "#2D2B45" : "#F3F4F6" },
+                      ({ pressed }: { pressed: boolean }) => ({
+                        opacity: pressed ? 0.8 : 1,
+                      }),
+                    ]}
+                  >
+                    <Text
+                      className="font-OutfitMedium text-sm"
+                      style={{ color: valueColor }}
+                    >
+                      Close
+                    </Text>
+                  </Pressable>
+                </>
               ) : (
                 <>
-                  <View className="mb-3">
-                    <View
-                      className="flex-row items-center rounded-xl"
-                      style={{
-                        backgroundColor: inputBg,
-                        borderWidth: 1,
-                        borderColor: inputBorder,
-                      }}
-                    >
-                      <TextInput
-                        value={currentPassword}
-                        onChangeText={setCurrentPassword}
-                        secureTextEntry={!showCurrentPw}
-                        className="font-OutfitMedium text-base flex-1 px-4 py-3.5"
-                        style={{ color: valueColor }}
-                        placeholderTextColor="#6B7280"
-                        placeholder="Current password"
-                      />
-                      <Pressable
-                        onPress={() => setShowCurrentPw(!showCurrentPw)}
-                        className="pr-4"
-                        hitSlop={8}
-                      >
-                        <Ionicons
-                          name={showCurrentPw ? "eye-off-outline" : "eye-outline"}
-                          size={20}
-                          color="#6B7280"
-                        />
-                      </Pressable>
+                  <View className="items-center mb-4">
+                    <View className="w-14 h-14 rounded-full bg-[#DC2626]/10 items-center justify-center">
+                      <Ionicons name="warning" size={30} color="#DC2626" />
                     </View>
                   </View>
 
-                  <View className="mb-3">
-                    <View
-                      className="flex-row items-center rounded-xl"
-                      style={{
-                        backgroundColor: inputBg,
-                        borderWidth: 1,
-                        borderColor: inputBorder,
-                      }}
-                    >
-                      <TextInput
-                        value={newPassword}
-                        onChangeText={setNewPassword}
-                        secureTextEntry={!showNewPw}
-                        className="font-OutfitMedium text-base flex-1 px-4 py-3.5"
-                        style={{ color: valueColor }}
-                        placeholderTextColor="#6B7280"
-                        placeholder="New password"
-                      />
-                      <Pressable
-                        onPress={() => setShowNewPw(!showNewPw)}
-                        className="pr-4"
-                        hitSlop={8}
-                      >
-                        <Ionicons
-                          name={showNewPw ? "eye-off-outline" : "eye-outline"}
-                          size={20}
-                          color="#6B7280"
-                        />
-                      </Pressable>
-                    </View>
-                  </View>
+                  <Text
+                    className="font-OutfitSemiBold text-xl text-center mb-2"
+                    style={{ color: valueColor }}
+                  >
+                    Delete Account?
+                  </Text>
+                  <Text
+                    className="font-Outfit text-sm text-center mb-6"
+                    style={{ color: subtextColor }}
+                  >
+                    Are you sure you want to delete your account? This action
+                    cannot be undone and all your data will be permanently
+                    removed.
+                  </Text>
 
-                  <View className="mb-1">
-                    <View
-                      className="flex-row items-center rounded-xl"
-                      style={{
-                        backgroundColor: inputBg,
-                        borderWidth: 1,
-                        borderColor: inputBorder,
-                      }}
-                    >
-                      <TextInput
-                        value={confirmNewPassword}
-                        onChangeText={setConfirmNewPassword}
-                        secureTextEntry={!showConfirmPw}
-                        className="font-OutfitMedium text-base flex-1 px-4 py-3.5"
-                        style={{ color: valueColor }}
-                        placeholderTextColor="#6B7280"
-                        placeholder="Confirm new password"
-                      />
-                      <Pressable
-                        onPress={() => setShowConfirmPw(!showConfirmPw)}
-                        className="pr-4"
-                        hitSlop={8}
-                      >
-                        <Ionicons
-                          name={showConfirmPw ? "eye-off-outline" : "eye-outline"}
-                          size={20}
-                          color="#6B7280"
-                        />
-                      </Pressable>
-                    </View>
-                  </View>
-
-                  <FormError message={passwordError} />
+                  <FormError message={requestDeletion.error?.message ?? ""} />
 
                   <Pressable
-                    onPress={handleChangePassword}
-                    disabled={changePassword.isPending}
-                    className="bg-[#6C56FF] rounded-xl py-3.5 items-center mt-2"
-                    style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+                    onPress={() => {
+                      requestDeletion.mutate(undefined, {
+                        onSuccess: () => {
+                          setIsDeletionSuccess(true);
+                          setTimeout(() => {
+                            setIsDeleteModalVisible(false);
+                            setIsDeletionSuccess(false);
+                          }, 3000);
+                        },
+                      });
+                    }}
+                    disabled={requestDeletion.isPending}
+                    className="rounded-xl py-3.5 items-center"
+                    style={[
+                      { backgroundColor: "#DC2626" },
+                      ({ pressed }: { pressed: boolean }) => ({
+                        opacity: pressed ? 0.8 : 1,
+                      }),
+                    ]}
                   >
-                    {changePassword.isPending ? (
+                    {requestDeletion.isPending ? (
                       <ActivityIndicator size="small" color="#fff" />
                     ) : (
                       <Text className="font-OutfitSemiBold text-base text-white">
-                        Update Password
+                        Yes, Delete My Account
                       </Text>
                     )}
                   </Pressable>
 
                   <Pressable
-                    onPress={() => {
-                      setIsChangingPassword(false);
-                      resetPasswordForm();
-                    }}
+                    onPress={() => setIsDeleteModalVisible(false)}
                     className="mt-3 py-2 items-center"
                   >
                     <Text
@@ -690,78 +740,6 @@ export default function Profile() {
                   </Pressable>
                 </>
               )}
-            </Pressable>
-          </Pressable>
-        </Modal>
-        {/* Delete Account Modal */}
-        <Modal
-          visible={isDeleteModalVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setIsDeleteModalVisible(false)}
-        >
-          <Pressable
-            className="flex-1 items-center justify-center"
-            style={{
-              backgroundColor: isDark
-                ? "rgba(0,0,0,0.6)"
-                : "rgba(0,0,0,0.3)",
-            }}
-            onPress={() => setIsDeleteModalVisible(false)}
-          >
-            <Pressable
-              className="rounded-3xl w-[85%] max-w-[340px] p-6"
-              style={{ backgroundColor: modalBg }}
-              onPress={() => {}}
-            >
-              <View className="items-center mb-4">
-                <View className="w-14 h-14 rounded-full bg-[#DC2626]/10 items-center justify-center">
-                  <Ionicons name="warning" size={30} color="#DC2626" />
-                </View>
-              </View>
-
-              <Text
-                className="font-OutfitSemiBold text-xl text-center mb-2"
-                style={{ color: valueColor }}
-              >
-                Delete Account?
-              </Text>
-              <Text
-                className="font-Outfit text-sm text-center mb-6"
-                style={{ color: subtextColor }}
-              >
-                Are you sure you want to delete your account? This action cannot
-                be undone and all your data will be permanently removed.
-              </Text>
-
-              <Pressable
-                onPress={() => {
-                  setIsDeleteModalVisible(false);
-                }}
-                className="rounded-xl py-3.5 items-center"
-                style={[
-                  { backgroundColor: "#DC2626" },
-                  ({ pressed }: { pressed: boolean }) => ({
-                    opacity: pressed ? 0.8 : 1,
-                  }),
-                ]}
-              >
-                <Text className="font-OutfitSemiBold text-base text-white">
-                  Yes, Delete My Account
-                </Text>
-              </Pressable>
-
-              <Pressable
-                onPress={() => setIsDeleteModalVisible(false)}
-                className="mt-3 py-2 items-center"
-              >
-                <Text
-                  className="font-OutfitMedium text-sm"
-                  style={{ color: subtextColor }}
-                >
-                  Cancel
-                </Text>
-              </Pressable>
             </Pressable>
           </Pressable>
         </Modal>

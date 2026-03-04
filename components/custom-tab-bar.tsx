@@ -17,6 +17,11 @@ const TAB_META: Record<
     inactive: "chatbubbles-outline",
     label: "Chats",
   },
+  story: {
+    active: "play-circle",
+    inactive: "play-circle-outline",
+    label: "Stories",
+  },
   profile: {
     active: "person-circle",
     inactive: "person-circle-outline",

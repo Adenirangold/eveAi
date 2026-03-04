@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image as ExpoImage } from "expo-image";
 import ContactSkeleton from "./skeleton/ContactSkeleton";
+import VerifiedBadge from "./VerifiedBadge";
 
 const AVATAR_SIZE = 50;
 
@@ -42,6 +43,8 @@ function ContactRow({
   added: boolean;
 }) {
   const isDark = useColorScheme() === "dark";
+  const accentBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(108,86,255,0.1)";
+  const accentText = isDark ? "#fff" : "#6C56FF";
 
   return (
     <View
@@ -67,25 +70,21 @@ function ContactRow({
               { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
             ]}
           >
-            <Text
-              style={[
-                styles.initialsText,
-                { color: isDark ? "#fff" : "#6C56FF" },
-              ]}
-            >
-              {getInitials(item.name)}
-            </Text>
+            <Ionicons name="person" size={22} color={isDark ? "#fff" : "#6C56FF"} />
           </View>
         )}
       </View>
 
       <View style={styles.info}>
-        <Text
-          style={[styles.name, { color: isDark ? "#fff" : "#1A1A2E" }]}
-          numberOfLines={1}
-        >
-          {item.name}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Text
+            style={[styles.name, { color: isDark ? "#fff" : "#1A1A2E" }]}
+            numberOfLines={1}
+          >
+            {item.name}
+          </Text>
+          {item.isPremium && <VerifiedBadge size={15} />}
+        </View>
         <Text
           style={[styles.bio, { color: isDark ? "#888" : "#6B7280" }]}
           numberOfLines={2}
@@ -97,6 +96,7 @@ function ContactRow({
       <TouchableOpacity
         style={[
           styles.addButton,
+          { backgroundColor: accentBg },
           added && {
             backgroundColor: isDark ? "#2E2E4A" : "#D1D5DB",
           },
@@ -106,7 +106,7 @@ function ContactRow({
         disabled={adding || added}
       >
         {adding ? (
-          <ActivityIndicator size="small" color="#fff" />
+          <ActivityIndicator size="small" color={accentText} />
         ) : added ? (
           <>
             <Ionicons
@@ -125,8 +125,8 @@ function ContactRow({
           </>
         ) : (
           <>
-            <Ionicons name="person-add-outline" size={16} color="#fff" />
-            <Text style={styles.addButtonText}>Add</Text>
+            <Ionicons name="person-add-outline" size={16} color={accentText} />
+            <Text style={[styles.addButtonText, { color: accentText }]}>Add</Text>
           </>
         )}
       </TouchableOpacity>
@@ -228,7 +228,7 @@ export default function AddContactsContent({
                 { color: isDark ? "#888" : "#6B7280" },
               ]}
             >
-              No contacts available
+              No characters available
             </Text>
           }
         />
@@ -314,7 +314,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#6C56FF",
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
