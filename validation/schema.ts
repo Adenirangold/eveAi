@@ -5,8 +5,15 @@ export const loginSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters long"),
 });
 
+const fullNameRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ'-]{2,}(\s+[A-Za-zÀ-ÖØ-öø-ÿ'-]{2,})+$/;
+
+export const fullNameSchema = z
+  .string()
+  .min(4, "Full name must be at least 4 characters")
+  .regex(fullNameRegex, "Please enter your full name eg 'John Doe'");
+
 export const signUpSchema = z.object({
-  fullName: z.string().min(4, "Full name must be at least 4 characters"),
+  fullName: fullNameSchema,
   email: z.email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters long"),
 });

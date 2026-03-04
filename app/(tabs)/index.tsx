@@ -2,7 +2,6 @@ import { useAddContactsSheet } from "@/app/(tabs)/_layout";
 import Background from "@/components/BackGround";
 import CustomInput from "@/components/CustomInput";
 import VerifiedBadge from "@/components/VerifiedBadge";
-import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import Reels from "@/components/reels";
 import ChatRowSkeleton from "@/components/skeleton/ChatRowSkeleton";
 import ChatsHeaderSkeleton from "@/components/skeleton/ChatsHeaderSkeleton";
@@ -341,7 +340,6 @@ export default function Index() {
   return (
     <Background>
       <SafeAreaView style={styles.safe}>
-        <VerifyEmailBanner />
         {loading ? (
           <View>
             <Reels />
@@ -376,8 +374,8 @@ export default function Index() {
                 <RefreshControl
                   refreshing={isFetching && !loading}
                   onRefresh={onRefresh}
-                  tintColor="#6C56FF"
-                  colors={["#6C56FF"]}
+                  tintColor={isDark ? "#fff" : "#6C56FF"}
+                  colors={[isDark ? "#fff" : "#6C56FF"]}
                 />
               }
               ListEmptyComponent={

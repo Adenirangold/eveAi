@@ -303,8 +303,8 @@ export default function StoryTab() {
               <RefreshControl
                 refreshing={isFetching && !loading}
                 onRefresh={refetch}
-                tintColor="#6C56FF"
-                colors={["#6C56FF"]}
+                tintColor={isDark ? "#fff" : "#6C56FF"}
+                colors={[isDark ? "#fff" : "#6C56FF"]}
               />
             }
           />

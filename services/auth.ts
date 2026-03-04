@@ -119,6 +119,14 @@ export const authService = {
     return data.data;
   },
 
+  resendVerification: async (email: string): Promise<MessageData> => {
+    const { data } = await api.post<ApiResponse<MessageData>>(
+      "/auth/resend-verification",
+      { email },
+    );
+    return data.data;
+  },
+
   requestDeletion: async (): Promise<MessageData> => {
     const { data } = await api.post<ApiResponse<MessageData>>(
       "/auth/request-deletion",

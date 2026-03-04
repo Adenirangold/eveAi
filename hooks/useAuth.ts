@@ -102,6 +102,12 @@ export function useUpdateFullName() {
   });
 }
 
+export function useResendVerification() {
+  return useMutation({
+    mutationFn: authService.resendVerification,
+  });
+}
+
 export function useRequestDeletion() {
   return useMutation({
     mutationFn: authService.requestDeletion,

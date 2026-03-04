@@ -1,5 +1,7 @@
+import BibleRefModal from "@/components/BibleRefModal";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { parseRefsString } from "@/lib/bible";
 import { ChatMessage, chatService } from "@/services/chat";
 import { Contact } from "@/services/contacts";
 import { useAuthStore } from "@/store/auth-store";
@@ -17,11 +19,11 @@ import React, {
 } from "react";
 import {
   Animated,
-  FlatList as RNFlatList,
   KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
+  FlatList as RNFlatList,
   StyleSheet,
   Text,
   TextInput,
@@ -36,6 +38,10 @@ import {
   type IMessage,
 } from "react-native-gifted-chat";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+interface ExtendedMessage extends IMessage {
+  bibleRefs?: string | null;
+}
 
 const DRAFT_KEY_PREFIX = "chat_draft_";
 const getDraftKey = (chatId: string) => `${DRAFT_KEY_PREFIX}${chatId}`;
@@ -56,13 +62,14 @@ function getInitials(name: string): string {
 function toGiftedMessages(
   msgs: ChatMessage[],
   contact: Contact | null,
-): IMessage[] {
+): ExtendedMessage[] {
   return msgs
     .filter((m) => m?.id != null)
     .map((m) => ({
       _id: m.id,
       text: m.content,
       createdAt: new Date(m.createdAt),
+      bibleRefs: m.bibleRefs,
       user:
         m.role === "user"
           ? { _id: 1 }
@@ -140,6 +147,7 @@ export default function ChatScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [inputText, setInputText] = useState("");
+  const [bibleModalRefs, setBibleModalRefs] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
   const flatListRef = useRef<RNFlatList>(null);
 
@@ -248,26 +256,63 @@ export default function ChatScreen() {
   );
 
   const renderBubble = useCallback(
-    (props: BubbleProps<IMessage>) => (
-      <Bubble
-        {...props}
-        wrapperStyle={{
-          right: styles.bubbleRight,
-          left: {
-            ...styles.bubbleLeft,
-            backgroundColor: isDark ? "#1C1C2E" : "#EDEBF6",
-          },
-        }}
-        textStyle={{
-          right: styles.bubbleTextRight as TextStyle,
-          left: {
-            ...(styles.bubbleTextLeft as TextStyle),
-            color: isDark ? "#E8E8E8" : "#1A1A2E",
-          },
-        }}
-        tickStyle={{ color: "#6C56FF" }}
-      />
-    ),
+    (props: BubbleProps<ExtendedMessage>) => {
+      const msg = props.currentMessage as ExtendedMessage | undefined;
+      const isLeft = msg?.user?._id !== 1;
+
+      let refsList: string[] = [];
+      if (msg?.bibleRefs) {
+        refsList = parseRefsString(msg.bibleRefs);
+      }
+
+      return (
+        <View>
+          <Bubble
+            {...props}
+            wrapperStyle={{
+              right: styles.bubbleRight,
+              left: {
+                ...styles.bubbleLeft,
+                backgroundColor: isDark ? "#1C1C2E" : "#EDEBF6",
+              },
+            }}
+            textStyle={{
+              right: styles.bubbleTextRight as TextStyle,
+              left: {
+                ...(styles.bubbleTextLeft as TextStyle),
+                color: isDark ? "#E8E8E8" : "#1A1A2E",
+              },
+            }}
+            tickStyle={{ color: "#6C56FF" }}
+          />
+          {refsList.length > 0 ? (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setBibleModalRefs(msg!.bibleRefs!)}
+              style={[
+                styles.refsContainer,
+                isLeft ? styles.refsLeft : styles.refsRight,
+              ]}
+            >
+              <Ionicons
+                name="book-outline"
+                size={12}
+                color={isDark ? "#8B7FFF" : "#6C56FF"}
+                style={{ marginRight: 4, marginTop: 1 }}
+              />
+              <Text
+                style={[
+                  styles.refsText,
+                  { color: isDark ? "#8B7FFF" : "#6C56FF" },
+                ]}
+              >
+                {refsList.join(", ")}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      );
+    },
     [isDark],
   );
 
@@ -296,7 +341,11 @@ export default function ChatScreen() {
             { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
           ]}
         >
-          <Ionicons name="person" size={14} color={isDark ? "#fff" : "#6C56FF"} />
+          <Ionicons
+            name="person"
+            size={14}
+            color={isDark ? "#fff" : "#6C56FF"}
+          />
         </View>
       );
     },
@@ -408,7 +457,11 @@ export default function ChatScreen() {
                   { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
                 ]}
               >
-                <Ionicons name="person" size={18} color={isDark ? "#fff" : "#6C56FF"} />
+                <Ionicons
+                  name="person"
+                  size={18}
+                  color={isDark ? "#fff" : "#6C56FF"}
+                />
               </View>
             )}
             <View>
@@ -522,6 +575,12 @@ export default function ChatScreen() {
           }}
         />
       </KeyboardAvoidingView>
+
+      <BibleRefModal
+        visible={!!bibleModalRefs}
+        onClose={() => setBibleModalRefs(null)}
+        refsRaw={bibleModalRefs ?? ""}
+      />
     </View>
   );
 }
@@ -702,5 +761,25 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: "#6C56FF",
     marginHorizontal: 3,
+  },
+  refsContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingHorizontal: 10,
+    paddingTop: 4,
+    paddingBottom: 2,
+    maxWidth: "85%",
+  },
+  refsLeft: {
+    alignSelf: "flex-start",
+  },
+  refsRight: {
+    alignSelf: "flex-end",
+  },
+  refsText: {
+    fontSize: 12,
+    fontFamily: "Outfit-Medium",
+    flexShrink: 1,
+    lineHeight: 16,
   },
 });

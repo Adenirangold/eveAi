@@ -1,6 +1,7 @@
 import Background from "@/components/BackGround";
 import CustomSwitch from "@/components/CustomSwitch";
 import FormError from "@/components/FormError";
+import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import icons from "@/constants/icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
@@ -13,16 +14,19 @@ import {
 } from "@/hooks/useAuth";
 import { useNotificationToggle } from "@/hooks/useNotifications";
 import { useThemeStore } from "@/store/theme-store";
+import { fullNameSchema } from "@/validation/schema";
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -49,7 +53,9 @@ function formatDate(dateStr?: string): string {
 }
 
 export default function Profile() {
+  const queryClient = useQueryClient();
   const { data: profile, isLoading } = useProfile();
+  const [refreshing, setRefreshing] = useState(false);
   const updateFullName = useUpdateFullName();
   const updateUsername = useUpdateUsername();
   const requestDeletion = useRequestDeletion();
@@ -64,12 +70,19 @@ export default function Profile() {
     setThemePreference(value ? "dark" : "light");
   };
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ["profile"] });
+    setRefreshing(false);
+  }, [queryClient]);
+
   const notifications = useNotificationToggle();
   const [fullName, setFullName] = useState("");
   const [isEditingName, setIsEditingName] = useState(false);
   const [username, setUsername] = useState("");
   const [isEditingUsername, setIsEditingUsername] = useState(false);
 
+  const [nameError, setNameError] = useState("");
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [isDeletionSuccess, setIsDeletionSuccess] = useState(false);
 
@@ -79,8 +92,16 @@ export default function Profile() {
   }, [profile?.name, profile?.username]);
 
   const handleSaveFullName = () => {
+    setNameError("");
     const trimmed = fullName.trim();
     if (!trimmed) return;
+
+    const result = fullNameSchema.safeParse(trimmed);
+    if (!result.success) {
+      setNameError(result.error.issues[0].message);
+      return;
+    }
+
     if (trimmed === profile?.name) {
       setIsEditingName(false);
       return;
@@ -143,7 +164,17 @@ export default function Profile() {
           className="flex-1"
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={isDark ? "#fff" : "#6C56FF"}
+              colors={[isDark ? "#fff" : "#6C56FF"]}
+            />
+          }
         >
+          <VerifyEmailBanner />
+
           {/* Theme Toggle */}
           <View className="flex-row items-center justify-end px-5 pt-4">
             <Ionicons
@@ -431,6 +462,7 @@ export default function Profile() {
           onRequestClose={() => {
             setIsEditingName(false);
             setFullName(profile?.name ?? "");
+            setNameError("");
           }}
         >
           <Pressable
@@ -443,6 +475,7 @@ export default function Profile() {
             onPress={() => {
               setIsEditingName(false);
               setFullName(profile?.name ?? "");
+              setNameError("");
             }}
           >
             <Pressable
@@ -479,7 +512,7 @@ export default function Profile() {
                 placeholder="Enter your full name"
               />
 
-              <FormError message={updateFullName.error?.message ?? ""} />
+              <FormError message={nameError || updateFullName.error?.message || ""} />
 
               <Pressable
                 onPress={handleSaveFullName}
@@ -500,6 +533,7 @@ export default function Profile() {
                 onPress={() => {
                   setIsEditingName(false);
                   setFullName(profile?.name ?? "");
+                  setNameError("");
                 }}
                 className="mt-3 py-2 items-center"
               >
