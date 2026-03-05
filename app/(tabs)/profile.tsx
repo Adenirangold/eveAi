@@ -176,7 +176,7 @@ export default function Profile() {
           <VerifyEmailBanner />
 
           {/* Theme Toggle */}
-          <View className="flex-row items-center justify-end px-5 pt-4">
+          <View className="flex-row items-center justify-end px-5 pt-4 gap-2">
             <Ionicons
               name={isDark ? "moon" : "sunny"}
               size={18}
@@ -187,7 +187,7 @@ export default function Profile() {
               onValueChange={handleThemeToggle}
               trackColorFalse="#D1D5DB"
               trackColorTrue="#6C56FF"
-              scale={0.7}
+              scale={0.9}
             />
           </View>
 
@@ -254,13 +254,13 @@ export default function Profile() {
                   <Ionicons name="at-outline" size={18} color="#6C56FF" />
                 </View>
                 <Text
-                  className="font-OutfitMedium text-sm flex-1"
+                  className="font-OutfitMedium text-base flex-1"
                   style={{ color: labelColor }}
                 >
                   Username
                 </Text>
                 <Text
-                  className="font-OutfitMedium text-sm mr-2"
+                  className="font-OutfitMedium text-base mr-2"
                   style={{ color: valueColor }}
                 >
                   {profile?.username ?? "—"}
@@ -331,7 +331,7 @@ export default function Profile() {
                   />
                 </View>
                 <Text
-                  className="font-OutfitMedium text-sm flex-1"
+                  className="font-OutfitMedium text-base flex-1"
                   style={{ color: labelColor }}
                 >
                   Notification
@@ -342,7 +342,7 @@ export default function Profile() {
                   disabled={notifications.isLoading}
                   trackColorFalse={isDark ? "#2D2B45" : "#D1D5DB"}
                   trackColorTrue="#6C56FF"
-                  scale={0.8}
+                  scale={0.9}
                 />
               </View>
               <Separator color={separatorColor} />
@@ -352,15 +352,23 @@ export default function Profile() {
                 style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
                 <View className="w-9 h-9 rounded-xl bg-[#6C56FF]/10 items-center justify-center mr-4">
-                  <Ionicons name="lock-closed-outline" size={18} color="#6C56FF" />
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={18}
+                    color="#6C56FF"
+                  />
                 </View>
                 <Text
-                  className="font-OutfitMedium text-sm flex-1"
+                  className="font-OutfitMedium text-base flex-1"
                   style={{ color: labelColor }}
                 >
                   Change Password
                 </Text>
-                <Ionicons name="chevron-forward" size={16} color={chevronColor} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={chevronColor}
+                />
               </Pressable>
             </View>
 
@@ -384,12 +392,16 @@ export default function Profile() {
                   <Ionicons name="shield-outline" size={18} color="#6C56FF" />
                 </View>
                 <Text
-                  className="font-OutfitMedium text-sm flex-1"
+                  className="font-OutfitMedium text-base flex-1"
                   style={{ color: labelColor }}
                 >
                   Privacy Terms
                 </Text>
-                <Ionicons name="chevron-forward" size={16} color={chevronColor} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={chevronColor}
+                />
               </Pressable>
 
               <Separator color={separatorColor} />
@@ -400,15 +412,23 @@ export default function Profile() {
                 style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
                 <View className="w-9 h-9 rounded-xl bg-[#6C56FF]/10 items-center justify-center mr-4">
-                  <Ionicons name="document-text-outline" size={18} color="#6C56FF" />
+                  <Ionicons
+                    name="document-text-outline"
+                    size={18}
+                    color="#6C56FF"
+                  />
                 </View>
                 <Text
-                  className="font-OutfitMedium text-sm flex-1"
+                  className="font-OutfitMedium text-base flex-1"
                   style={{ color: labelColor }}
                 >
                   Policy Terms
                 </Text>
-                <Ionicons name="chevron-forward" size={16} color={chevronColor} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={chevronColor}
+                />
               </Pressable>
             </View>
 
@@ -426,12 +446,16 @@ export default function Profile() {
                   <Ionicons name="trash-outline" size={18} color="#6C56FF" />
                 </View>
                 <Text
-                  className="font-OutfitMedium text-sm flex-1"
+                  className="font-OutfitMedium text-base flex-1"
                   style={{ color: labelColor }}
                 >
                   Request Account Deletion
                 </Text>
-                <Ionicons name="chevron-forward" size={16} color={chevronColor} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={chevronColor}
+                />
               </Pressable>
               <Separator color={separatorColor} />
               <Pressable
@@ -446,7 +470,7 @@ export default function Profile() {
                     resizeMode="contain"
                   />
                 </View>
-                <Text className="font-OutfitMedium text-sm text-[#DC2626] flex-1">
+                <Text className="font-OutfitMedium text-base text-[#DC2626] flex-1">
                   Log out
                 </Text>
               </Pressable>
@@ -468,9 +492,7 @@ export default function Profile() {
           <Pressable
             className="flex-1 items-center justify-center"
             style={{
-              backgroundColor: isDark
-                ? "rgba(0,0,0,0.6)"
-                : "rgba(0,0,0,0.3)",
+              backgroundColor: isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.3)",
             }}
             onPress={() => {
               setIsEditingName(false);
@@ -512,7 +534,9 @@ export default function Profile() {
                 placeholder="Enter your full name"
               />
 
-              <FormError message={nameError || updateFullName.error?.message || ""} />
+              <FormError
+                message={nameError || updateFullName.error?.message || ""}
+              />
 
               <Pressable
                 onPress={handleSaveFullName}
@@ -561,9 +585,7 @@ export default function Profile() {
           <Pressable
             className="flex-1 items-center justify-center"
             style={{
-              backgroundColor: isDark
-                ? "rgba(0,0,0,0.6)"
-                : "rgba(0,0,0,0.3)",
+              backgroundColor: isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.3)",
             }}
             onPress={() => {
               setIsEditingUsername(false);
@@ -652,9 +674,7 @@ export default function Profile() {
           <Pressable
             className="flex-1 items-center justify-center"
             style={{
-              backgroundColor: isDark
-                ? "rgba(0,0,0,0.6)"
-                : "rgba(0,0,0,0.3)",
+              backgroundColor: isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.3)",
             }}
             onPress={() => {
               setIsDeleteModalVisible(false);
@@ -670,7 +690,11 @@ export default function Profile() {
                 <>
                   <View className="items-center mb-4">
                     <View className="w-14 h-14 rounded-full bg-[#22C55E]/15 items-center justify-center">
-                      <Ionicons name="checkmark-circle" size={36} color="#22C55E" />
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={36}
+                        color="#22C55E"
+                      />
                     </View>
                   </View>
                   <Text
@@ -693,9 +717,6 @@ export default function Profile() {
                     className="rounded-xl py-3 items-center"
                     style={[
                       { backgroundColor: isDark ? "#2D2B45" : "#F3F4F6" },
-                      ({ pressed }: { pressed: boolean }) => ({
-                        opacity: pressed ? 0.8 : 1,
-                      }),
                     ]}
                   >
                     <Text
@@ -745,12 +766,7 @@ export default function Profile() {
                     }}
                     disabled={requestDeletion.isPending}
                     className="rounded-xl py-3.5 items-center"
-                    style={[
-                      { backgroundColor: "#DC2626" },
-                      ({ pressed }: { pressed: boolean }) => ({
-                        opacity: pressed ? 0.8 : 1,
-                      }),
-                    ]}
+                    style={[{ backgroundColor: "#DC2626" }]}
                   >
                     {requestDeletion.isPending ? (
                       <ActivityIndicator size="small" color="#fff" />

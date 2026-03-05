@@ -1,5 +1,5 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { BibleVerse, lookupVerses, parseRefsString } from "@/lib/bible";
+import { BibleVerse, lookupVerses } from "@/lib/bible";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
 import {
@@ -17,21 +17,20 @@ const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 interface BibleRefModalProps {
   visible: boolean;
   onClose: () => void;
-  refsRaw: string;
+  refs: string[];
 }
 
 export default function BibleRefModal({
   visible,
   onClose,
-  refsRaw,
+  refs,
 }: BibleRefModalProps) {
   const isDark = useColorScheme() === "dark";
 
   const verses: BibleVerse[] = useMemo(() => {
-    if (!refsRaw) return [];
-    const refs = parseRefsString(refsRaw);
+    if (refs.length === 0) return [];
     return lookupVerses(refs);
-  }, [refsRaw]);
+  }, [refs]);
 
   return (
     <Modal

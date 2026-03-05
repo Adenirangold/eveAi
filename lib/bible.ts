@@ -39,16 +39,3 @@ export function lookupVerses(refs: string[]): BibleVerse[] {
   }
   return results;
 }
-
-export function parseRefsString(raw: string): string[] {
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed.map((r: string) => r.trim());
-    return [String(parsed).trim()];
-  } catch {
-    return raw
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
-}

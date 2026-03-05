@@ -42,7 +42,7 @@ export default function CustomTabBar({
     <View
       style={[
         styles.wrapper,
-        { bottom: Math.max(insets.bottom, 16) },
+        { bottom: Math.max(insets.bottom, 16) + 15 },
         isDark ? styles.wrapperDark : styles.wrapperLight,
       ]}
     >
@@ -57,11 +57,7 @@ export default function CustomTabBar({
           };
           const iconName = isFocused ? meta.active : meta.inactive;
 
-          const iconColor = isDark
-            ? "#fff"
-            : isFocused
-              ? "#6C56FF"
-              : "#6B7280";
+          const iconColor = isDark ? "#fff" : isFocused ? "#6C56FF" : "#6B7280";
 
           const onPress = () => {
             const event = navigation.emit({
@@ -90,10 +86,7 @@ export default function CustomTabBar({
               <Ionicons name={iconName} size={28} color={iconColor} />
               {isFocused && (
                 <Text
-                  style={[
-                    styles.label,
-                    { color: isDark ? "#fff" : "#6C56FF" },
-                  ]}
+                  style={[styles.label, { color: isDark ? "#fff" : "#6C56FF" }]}
                 >
                   {meta.label}
                 </Text>

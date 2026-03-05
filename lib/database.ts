@@ -252,10 +252,15 @@ export function markStoryViewed(storyId: string): void {
 export function getLocalMessages(contactId: string): ChatMessage[] {
   const db = getDb();
   if (!db) return [];
-  return db.getAllSync<ChatMessage>(
-    "SELECT * FROM messages WHERE contactId = ? ORDER BY createdAt ASC",
-    [contactId],
-  );
+  return db
+    .getAllSync<any>(
+      "SELECT * FROM messages WHERE contactId = ? ORDER BY createdAt ASC",
+      [contactId],
+    )
+    .map((r) => ({
+      ...r,
+      bibleRefs: r.bibleRefs ? JSON.parse(r.bibleRefs) : null,
+    }));
 }
 
 export function upsertLocalMessages(messages: ChatMessage[]): void {
@@ -274,7 +279,7 @@ export function upsertLocalMessages(messages: ChatMessage[]): void {
           m.contactId,
           m.role,
           m.content,
-          m.bibleRefs,
+          m.bibleRefs ? JSON.stringify(m.bibleRefs) : null,
           m.createdAt,
         ],
       );

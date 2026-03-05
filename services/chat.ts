@@ -7,7 +7,7 @@ export interface ChatMessage {
   contactId: string;
   role: "user" | "assistant";
   content: string;
-  bibleRefs: string | null;
+  bibleRefs: string[] | null;
   createdAt: string;
 }
 

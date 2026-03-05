@@ -10,8 +10,8 @@ import {
   deleteLocalContact,
   getLastMessageByContact,
   getLocalContacts,
-  type LastMessageInfo,
   saveLocalContacts,
+  type LastMessageInfo,
 } from "@/lib/database";
 import { Contact, contactsService } from "@/services/contacts";
 import { registerAndSyncPushToken } from "@/utils/notification";
@@ -162,7 +162,11 @@ function ChatRow({
                 { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
               ]}
             >
-              <Ionicons name="person" size={22} color={isDark ? "#fff" : "#6C56FF"} />
+              <Ionicons
+                name="person"
+                size={22}
+                color={isDark ? "#fff" : "#6C56FF"}
+              />
             </View>
           )}
         </View>
@@ -391,20 +395,8 @@ export default function Index() {
                       { color: isDark ? "#888" : "#6B7280" },
                     ]}
                   >
-                    No characters yet
+                    No character found
                   </Text>
-                  <TouchableOpacity
-                    style={styles.emptyAddButton}
-                    activeOpacity={0.7}
-                    onPress={openAddContacts}
-                  >
-                    <Ionicons
-                      name="person-add-outline"
-                      size={18}
-                      color="#fff"
-                    />
-                    <Text style={styles.emptyAddText}>Add Characters</Text>
-                  </TouchableOpacity>
                 </View>
               }
             />

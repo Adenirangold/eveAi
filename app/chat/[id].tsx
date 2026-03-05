@@ -1,7 +1,6 @@
 import BibleRefModal from "@/components/BibleRefModal";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { parseRefsString } from "@/lib/bible";
 import { ChatMessage, chatService } from "@/services/chat";
 import { Contact } from "@/services/contacts";
 import { useAuthStore } from "@/store/auth-store";
@@ -40,7 +39,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface ExtendedMessage extends IMessage {
-  bibleRefs?: string | null;
+  bibleRefs?: string[] | null;
 }
 
 const DRAFT_KEY_PREFIX = "chat_draft_";
@@ -147,7 +146,7 @@ export default function ChatScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [inputText, setInputText] = useState("");
-  const [bibleModalRefs, setBibleModalRefs] = useState<string | null>(null);
+  const [bibleModalRefs, setBibleModalRefs] = useState<string[] | null>(null);
   const inputRef = useRef<TextInput>(null);
   const flatListRef = useRef<RNFlatList>(null);
 
@@ -260,10 +259,7 @@ export default function ChatScreen() {
       const msg = props.currentMessage as ExtendedMessage | undefined;
       const isLeft = msg?.user?._id !== 1;
 
-      let refsList: string[] = [];
-      if (msg?.bibleRefs) {
-        refsList = parseRefsString(msg.bibleRefs);
-      }
+      const refsList = msg?.bibleRefs ?? [];
 
       return (
         <View>
@@ -286,29 +282,42 @@ export default function ChatScreen() {
             tickStyle={{ color: "#6C56FF" }}
           />
           {refsList.length > 0 ? (
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => setBibleModalRefs(msg!.bibleRefs!)}
+            <View
               style={[
                 styles.refsContainer,
                 isLeft ? styles.refsLeft : styles.refsRight,
               ]}
             >
-              <Ionicons
-                name="book-outline"
-                size={12}
-                color={isDark ? "#8B7FFF" : "#6C56FF"}
-                style={{ marginRight: 4, marginTop: 1 }}
-              />
-              <Text
-                style={[
-                  styles.refsText,
-                  { color: isDark ? "#8B7FFF" : "#6C56FF" },
-                ]}
-              >
-                {refsList.join(", ")}
-              </Text>
-            </TouchableOpacity>
+              {refsList.slice(0, 2).map((ref) => (
+                <TouchableOpacity
+                  key={ref}
+                  activeOpacity={0.7}
+                  onPress={() => setBibleModalRefs([ref])}
+                  style={[
+                    styles.refChip,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.08)"
+                        : "rgba(108,86,255,0.1)",
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="book-outline"
+                    size={11}
+                    color={isDark ? "#8B7FFF" : "#6C56FF"}
+                  />
+                  <Text
+                    style={[
+                      styles.refChipText,
+                      { color: isDark ? "#8B7FFF" : "#6C56FF" },
+                    ]}
+                  >
+                    {ref}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           ) : null}
         </View>
       );
@@ -358,7 +367,7 @@ export default function ChatScreen() {
         style={[
           styles.customInputWrapper,
           {
-            paddingBottom: Math.max(insets.bottom, 8),
+            paddingBottom: Math.max(insets.bottom, 8) + 5,
             backgroundColor: isDark ? "#111114" : "#F5F3FF",
           },
         ]}
@@ -579,7 +588,7 @@ export default function ChatScreen() {
       <BibleRefModal
         visible={!!bibleModalRefs}
         onClose={() => setBibleModalRefs(null)}
-        refsRaw={bibleModalRefs ?? ""}
+        refs={bibleModalRefs ?? []}
       />
     </View>
   );
@@ -708,12 +717,12 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontFamily: "Outfit-Regular",
-    lineHeight: 21,
+    lineHeight: 26,
   },
   bubbleTextLeft: {
     fontSize: 16,
     fontFamily: "Outfit-Regular",
-    lineHeight: 21,
+    lineHeight: 26,
   },
   customInputWrapper: {
     paddingHorizontal: 14,
@@ -764,9 +773,10 @@ const styles = StyleSheet.create({
   },
   refsContainer: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    paddingHorizontal: 10,
-    paddingTop: 4,
+    flexWrap: "wrap",
+    gap: 6,
+    paddingHorizontal: 4,
+    paddingTop: 6,
     paddingBottom: 2,
     maxWidth: "85%",
   },
@@ -776,10 +786,17 @@ const styles = StyleSheet.create({
   refsRight: {
     alignSelf: "flex-end",
   },
-  refsText: {
+  refChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
+  },
+  refChipText: {
     fontSize: 12,
+    fontWeight: "600",
     fontFamily: "Outfit-Medium",
-    flexShrink: 1,
-    lineHeight: 16,
   },
 });
