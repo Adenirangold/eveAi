@@ -30,11 +30,17 @@ function getDb(): SQLiteDatabase | null {
       _db.getFirstSync<{ value: string }>(`SELECT value FROM _meta WHERE key = 'schema_version'`)
         ?.value ?? "0";
 
-    if (parseInt(schemaVersion, 10) < 3) {
+    const version = parseInt(schemaVersion, 10);
+
+    if (version < 3) {
       _db.execSync(`DROP TABLE IF EXISTS contacts`);
       _db.execSync(`DROP TABLE IF EXISTS available_contacts`);
       _db.execSync(`DROP TABLE IF EXISTS stories`);
-      _db.execSync(`INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_version', '3')`);
+    }
+
+    if (version < 4) {
+      _db.execSync(`DROP TABLE IF EXISTS unread_counts`);
+      _db.execSync(`INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_version', '4')`);
     }
 
     _db.execSync(`
@@ -97,6 +103,16 @@ function getDb(): SQLiteDatabase | null {
       CREATE INDEX IF NOT EXISTS idx_messages_contact
         ON messages (contactId, createdAt ASC)
     `);
+
+    _db.execSync(`
+      CREATE TABLE IF NOT EXISTS unread_counts (
+        contactId   TEXT PRIMARY KEY NOT NULL,
+        count       INTEGER NOT NULL DEFAULT 0,
+        lastContent TEXT,
+        lastAt      TEXT
+      )
+    `);
+
   }
   return _db;
 }
@@ -314,6 +330,55 @@ export function getLastMessageByContact(): Map<string, LastMessageInfo> {
   );
 }
 
+// ── Unread counts ───────────────────────────────────
+
+export interface UnreadInfo {
+  count: number;
+  lastContent: string | null;
+  lastAt: string | null;
+}
+
+export function getUnreadCounts(): Map<string, UnreadInfo> {
+  const db = getDb();
+  if (!db) return new Map();
+  const rows = db.getAllSync<{
+    contactId: string;
+    count: number;
+    lastContent: string | null;
+    lastAt: string | null;
+  }>("SELECT * FROM unread_counts WHERE count > 0");
+  return new Map(
+    rows.map((r) => [
+      r.contactId,
+      { count: r.count, lastContent: r.lastContent, lastAt: r.lastAt },
+    ]),
+  );
+}
+
+export function incrementUnread(
+  contactId: string,
+  content: string | null,
+  createdAt: string | null,
+): void {
+  const db = getDb();
+  if (!db) return;
+  db.runSync(
+    `INSERT INTO unread_counts (contactId, count, lastContent, lastAt)
+     VALUES (?, 1, ?, ?)
+     ON CONFLICT(contactId) DO UPDATE SET
+       count = count + 1,
+       lastContent = excluded.lastContent,
+       lastAt = excluded.lastAt`,
+    [contactId, content, createdAt],
+  );
+}
+
+export function clearUnread(contactId: string): void {
+  const db = getDb();
+  if (!db) return;
+  db.runSync("DELETE FROM unread_counts WHERE contactId = ?", [contactId]);
+}
+
 // ── Clear all ───────────────────────────────────────
 
 export function clearDatabase(): void {
@@ -325,5 +390,6 @@ export function clearDatabase(): void {
     db.runSync("DELETE FROM stories");
     db.runSync("DELETE FROM viewed_stories");
     db.runSync("DELETE FROM messages");
+    db.runSync("DELETE FROM unread_counts");
   });
 }

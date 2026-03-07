@@ -4,23 +4,23 @@
     "slug": "EveAi",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "org.rsc.eveAi",
+    "icon": "./assets/images/appstore.png",
+    "scheme": "org.rsc.eveai",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "org.rsc.eveAi"
+      "bundleIdentifier": "org.rsc.eveai"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff",
-        "foregroundImage": "./assets/images/icon.png"
+        "backgroundColor": "#6C56FF",
+        "foregroundImage": "./assets/images/playstore.png"
       },
       "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "pan",
       "predictiveBackGestureEnabled": false,
-      "package": "org.rsc.eveAi"
+      "package": "org.rsc.eveai"
     },
     "web": {
       "output": "static",

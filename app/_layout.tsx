@@ -12,19 +12,74 @@ import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useProfile } from "@/hooks/useAuth";
+import { getActiveChatId } from "@/lib/active-chat";
+import { incrementUnread } from "@/lib/database";
+import { queryClient } from "@/lib/query-client";
 import QueryProvider from "@/providers/QueryProvider";
 import { useAuthStore } from "@/store/auth-store";
 import { useThemeStore } from "@/store/theme-store";
 import { useFonts } from "expo-font";
+import * as Notifications from "expo-notifications";
+import { router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useMemo } from "react";
 import "../global.css";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 SplashScreen.preventAutoHideAsync();
 
 function ProfileHydrator() {
   useProfile();
   return null;
+}
+
+function useNotificationListeners() {
+  useEffect(() => {
+    const receivedSub = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        const data = notification.request.content.data as {
+          contactId?: string;
+          content?: string;
+          createdAt?: string;
+        } | undefined;
+
+        if (!data?.contactId) return;
+
+        if (getActiveChatId() === data.contactId) return;
+
+        incrementUnread(
+          data.contactId,
+          data.content ?? null,
+          data.createdAt ?? new Date().toISOString(),
+        );
+        queryClient.invalidateQueries({ queryKey: ["unreadCounts"] });
+      },
+    );
+
+    const responseSub = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const data = response.notification.request.content.data as {
+          contactId?: string;
+        } | undefined;
+
+        if (data?.contactId) {
+          router.push(`/chat/${data.contactId}`);
+        }
+      },
+    );
+
+    return () => {
+      receivedSub.remove();
+      responseSub.remove();
+    };
+  }, []);
 }
 
 export const unstable_settings = {
@@ -35,6 +90,8 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const hydrate = useAuthStore((s) => s.hydrate);
   const hydrateTheme = useThemeStore((s) => s.hydrate);
+
+  useNotificationListeners();
 
   const [loaded, error] = useFonts({
     "Outfit-Bold": require("@/assets/fonts/Outfit-Bold.ttf"),

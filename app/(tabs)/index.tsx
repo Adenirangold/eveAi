@@ -10,8 +10,10 @@ import {
   deleteLocalContact,
   getLastMessageByContact,
   getLocalContacts,
+  getUnreadCounts,
   saveLocalContacts,
   type LastMessageInfo,
+  type UnreadInfo,
 } from "@/lib/database";
 import { Contact, contactsService } from "@/services/contacts";
 import { registerAndSyncPushToken } from "@/utils/notification";
@@ -97,16 +99,19 @@ function RightAction({
 function ChatRow({
   item,
   lastMessage,
+  unreadCount,
   onDelete,
   onPress,
 }: {
   item: Contact;
   lastMessage?: LastMessageInfo;
+  unreadCount: number;
   onDelete: (id: string) => void;
   onPress: (id: string) => void;
 }) {
   const swipeableRef = useRef<SwipeableMethods>(null);
   const isDark = useColorScheme() === "dark";
+  const hasUnread = unreadCount > 0;
 
   const handleDelete = useCallback(() => {
     swipeableRef.current?.close();
@@ -182,7 +187,14 @@ function ChatRow({
             {item.isPremium && <VerifiedBadge size={15} />}
           </View>
           <Text
-            style={[styles.chatMessage, { color: isDark ? "#888" : "#6B7280" }]}
+            style={[
+              styles.chatMessage,
+              { color: isDark ? "#888" : "#6B7280" },
+              hasUnread && {
+                color: isDark ? "#ccc" : "#1A1A2E",
+                fontFamily: "Outfit-Medium",
+              },
+            ]}
             numberOfLines={1}
           >
             {lastMessage?.content ?? item.bio}
@@ -191,10 +203,21 @@ function ChatRow({
 
         <View style={styles.chatRight}>
           <Text
-            style={[styles.chatTime, { color: isDark ? "#888" : "#9CA3AF" }]}
+            style={[
+              styles.chatTime,
+              { color: isDark ? "#888" : "#9CA3AF" },
+              hasUnread && { color: "#6C56FF" },
+            ]}
           >
             {formatTime(lastMessage?.createdAt ?? item.addedAt)}
           </Text>
+          {hasUnread && (
+            <View style={styles.unreadBadge}>
+              <Text style={styles.unreadBadgeText}>
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </Text>
+            </View>
+          )}
         </View>
       </TouchableOpacity>
     </ReanimatedSwipeable>
@@ -294,6 +317,13 @@ export default function Index() {
     [contacts, sortKey],
   );
 
+  const { data: unreadCounts = new Map<string, UnreadInfo>() } = useQuery({
+    queryKey: ["unreadCounts"],
+    queryFn: () => getUnreadCounts(),
+    refetchOnMount: true,
+    staleTime: 0,
+  });
+
   const filteredContacts = useMemo(() => {
     const q = search.trim().toLowerCase();
     const filtered = q
@@ -368,6 +398,7 @@ export default function Index() {
                 <ChatRow
                   item={item}
                   lastMessage={lastMessages.get(item.id)}
+                  unreadCount={unreadCounts.get(item.id)?.count ?? 0}
                   onDelete={deleteContact}
                   onPress={openChat}
                 />
@@ -533,5 +564,20 @@ const styles = StyleSheet.create({
   chatTime: {
     fontSize: 12,
     fontFamily: "Outfit-Regular",
+  },
+  unreadBadge: {
+    backgroundColor: "#6C56FF",
+    borderRadius: 11,
+    minWidth: 22,
+    height: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+  unreadBadgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700",
+    fontFamily: "Outfit-SemiBold",
   },
 });

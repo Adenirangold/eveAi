@@ -1,6 +1,8 @@
 import BibleRefModal from "@/components/BibleRefModal";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { setActiveChatId } from "@/lib/active-chat";
+import { clearUnread } from "@/lib/database";
 import { ChatMessage, chatService } from "@/services/chat";
 import { Contact } from "@/services/contacts";
 import { useAuthStore } from "@/store/auth-store";
@@ -162,6 +164,16 @@ export default function ChatScreen() {
       if (draft) setInputText(draft);
     });
   }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    setActiveChatId(id);
+    clearUnread(id);
+    queryClient.invalidateQueries({ queryKey: ["unreadCounts"] });
+    return () => {
+      setActiveChatId(null);
+    };
+  }, [id, queryClient]);
 
   const handleTextChange = useCallback(
     (text: string) => {
