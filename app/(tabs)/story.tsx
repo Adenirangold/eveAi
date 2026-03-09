@@ -1,7 +1,7 @@
 import Background from "@/components/BackGround";
 import StoryViewer from "@/components/StoryViewer";
 import VerifiedBadge from "@/components/VerifiedBadge";
-import ReelsSkeleton from "@/components/skeleton/ReelsSkeleton";
+import StoriesSkeleton from "@/components/skeleton/StoriesSkeleton";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   getViewedStoryIds,
@@ -140,6 +140,7 @@ export default function StoryTab() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [viewedIds, setViewedIds] = useState<Set<string>>(() => getViewedStoryIds());
   const [viewedCollapsed, setViewedCollapsed] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const {
     data: stories = [],
@@ -225,7 +226,7 @@ export default function StoryTab() {
         </View>
 
         {loading ? (
-          <ReelsSkeleton />
+          <StoriesSkeleton />
         ) : stories.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons
@@ -283,8 +284,15 @@ export default function StoryTab() {
             stickySectionHeadersEnabled={false}
             refreshControl={
               <RefreshControl
-                refreshing={isFetching && !loading}
-                onRefresh={refetch}
+                refreshing={refreshing}
+                onRefresh={async () => {
+                  setRefreshing(true);
+                  try {
+                    await refetch();
+                  } finally {
+                    setRefreshing(false);
+                  }
+                }}
                 tintColor={isDark ? "#A78BFA" : "#1A1A2E"}
                 colors={[isDark ? "#A78BFA" : "#1A1A2E"]}
                 progressBackgroundColor={isDark ? "#1E1740" : "#FFFFFF"}

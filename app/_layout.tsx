@@ -90,6 +90,21 @@ function useNotificationListeners() {
       },
     );
 
+    (async () => {
+      const lastResponse =
+        await Notifications.getLastNotificationResponseAsync();
+      const data = lastResponse?.notification.request.content
+        .data as
+        | {
+            contactId?: string;
+          }
+        | undefined;
+
+      if (data?.contactId) {
+        router.push(`/chat/${data.contactId}`);
+      }
+    })();
+
     return () => {
       receivedSub.remove();
       responseSub.remove();

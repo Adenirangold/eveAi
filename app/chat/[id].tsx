@@ -2,7 +2,7 @@ import BibleRefModal from "@/components/BibleRefModal";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { setActiveChatId } from "@/lib/active-chat";
-import { cleanRef } from "@/lib/bible";
+import { cleanRef, formatRefLabel } from "@/lib/bible";
 import { clearUnread } from "@/lib/database";
 import { ChatMessage, chatService } from "@/services/chat";
 import { contactsService, type Contact } from "@/services/contacts";
@@ -328,7 +328,7 @@ export default function ChatScreen() {
                       { color: isDark ? "#8B7FFF" : "#6C56FF" },
                     ]}
                   >
-                    {cleanRef(ref)}
+                    {formatRefLabel(ref)}
                   </Text>
                 </TouchableOpacity>
               ))}

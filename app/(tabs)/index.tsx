@@ -4,6 +4,7 @@ import CustomInput from "@/components/CustomInput";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import Reels from "@/components/reels";
 import { REELS_QUERY_KEY } from "@/hooks/useReels";
+import { STORIES_QUERY_KEY } from "@/hooks/useStories";
 import ChatRowSkeleton from "@/components/skeleton/ChatRowSkeleton";
 import ChatsHeaderSkeleton from "@/components/skeleton/ChatsHeaderSkeleton";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -279,6 +280,7 @@ export default function Index() {
   const { openAddContacts } = useAddContactsSheet();
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const isDark = useColorScheme() === "dark";
 
   useFocusEffect(
@@ -294,7 +296,6 @@ export default function Index() {
   const {
     data: contacts = [],
     isPending: loading,
-    isFetching,
   } = useQuery({
     queryKey: ["contacts"],
     queryFn: async () => {
@@ -302,6 +303,7 @@ export default function Index() {
       saveLocalContacts(remote);
       return remote;
     },
+    refetchInterval: 1000 * 60 * 5,
     placeholderData: () => {
       try {
         const cached = getLocalContacts();
@@ -352,6 +354,7 @@ export default function Index() {
       try {
         await contactsService.deleteContact(id);
         queryClient.invalidateQueries({ queryKey: REELS_QUERY_KEY });
+        queryClient.invalidateQueries({ queryKey: STORIES_QUERY_KEY });
       } catch (err) {
         console.error("Failed to delete remote contact:", err);
         queryClient.invalidateQueries({ queryKey: ["contacts"] });
@@ -367,10 +370,16 @@ export default function Index() {
     [router],
   );
 
-  const onRefresh = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["contacts"] });
-    queryClient.invalidateQueries({ queryKey: REELS_QUERY_KEY });
-    setSortKey((k) => k + 1);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      await queryClient.invalidateQueries({ queryKey: REELS_QUERY_KEY });
+      await queryClient.invalidateQueries({ queryKey: STORIES_QUERY_KEY });
+      setSortKey((k) => k + 1);
+    } finally {
+      setRefreshing(false);
+    }
   }, [queryClient]);
 
   return (
@@ -409,7 +418,7 @@ export default function Index() {
               showsVerticalScrollIndicator={false}
               refreshControl={
                 <RefreshControl
-                  refreshing={isFetching && !loading}
+                  refreshing={refreshing}
                   onRefresh={onRefresh}
                   tintColor={isDark ? "#A78BFA" : "#1A1A2E"}
                   colors={[isDark ? "#A78BFA" : "#1A1A2E"]}

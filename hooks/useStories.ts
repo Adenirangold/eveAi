@@ -13,6 +13,7 @@ export function useStories() {
       saveLocalStories(remote);
       return remote;
     },
+    refetchInterval: 1000 * 60 * 2,
     placeholderData: () => {
       try {
         const cached = getLocalStories();

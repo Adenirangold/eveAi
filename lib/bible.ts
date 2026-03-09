@@ -180,28 +180,153 @@ export function cleanRef(ref: string): string {
   return ref.trim() ?? "";
 }
 
+/**
+ * Produces a user-facing label for a Bible reference.
+ *
+ * Examples:
+ * - "exodus 7:14-12"  → "Exodus 7:12-14"
+ * - "Exodus 7:12-14"  → "Exodus 7:12-14"
+ * - "John 3:16-18"    → "John 3:16-18"
+ * - "john 3:16"       → "John 3:16"
+ * - "Exodus 7:14-8:12" → "Exodus 7:14-8:12" (preserves explicit cross-chapter)
+ */
+export function formatRefLabel(ref: string): string {
+  const trimmed = ref.trim();
+  const normalized = normalizeRef(trimmed);
+
+  // 1) Explicit cross-chapter ranges
+  const cross = normalized.match(/^(.+?)\s(\d+):(\d+)-(\d+):(\d+)$/);
+  if (cross) {
+    const [, book, c1s, v1s, c2s, v2s] = cross;
+    let c1 = parseInt(c1s, 10);
+    let v1 = parseInt(v1s, 10);
+    let c2 = parseInt(c2s, 10);
+    let v2 = parseInt(v2s, 10);
+
+    if (
+      Number.isNaN(c1) ||
+      Number.isNaN(v1) ||
+      Number.isNaN(c2) ||
+      Number.isNaN(v2)
+    ) {
+      return cleanRef(normalized);
+    }
+
+    // If the range is backwards, swap it
+    if (c2 < c1 || (c2 === c1 && v2 < v1)) {
+      [c1, c2] = [c2, c1];
+      [v1, v2] = [v2, v1];
+    }
+
+    // If after swapping it's actually same-chapter, collapse to simple form
+    if (c1 === c2) {
+      const from = Math.min(v1, v2);
+      const to = Math.max(v1, v2);
+      return `${book} ${c1}:${from}-${to}`;
+    }
+
+    return `${book} ${c1}:${v1}-${c2}:${v2}`;
+  }
+
+  // 2) Same-chapter ranges (order-insensitive)
+  const same = normalized.match(/^(.+?)\s(\d+):(\d+)-(\d+)$/);
+  if (same) {
+    const [, book, chapStr, v1s, v2s] = same;
+    const chap = parseInt(chapStr, 10);
+    const v1 = parseInt(v1s, 10);
+    const v2 = parseInt(v2s, 10);
+
+    if (Number.isNaN(chap) || Number.isNaN(v1) || Number.isNaN(v2)) {
+      return cleanRef(normalized);
+    }
+
+    const from = Math.min(v1, v2);
+    const to = Math.max(v1, v2);
+    return `${book} ${chap}:${from}-${to}`;
+  }
+
+  // 3) Fallback to the existing cleaner (single-verse or unknown formats)
+  return cleanRef(normalized);
+}
+
 export interface BibleVerse {
   ref: string;
   text: string;
 }
 
+const MAX_VERSES_PER_CHAPTER = 200;
+
 /**
  * Expands a reference like "John 3:16-18" into ["John 3:16", "John 3:17", "John 3:18"].
- * Handles single verses ("John 3:16") and verse ranges within the same chapter.
+ * Also supports:
+ * - Cross-chapter ranges with explicit end chapter, e.g. "Exodus 7:14-8:12"
+ *
+ * For any verse candidates that don't exist in `bible`, `lookupVerses` will simply skip them.
  */
 function expandRef(ref: string): string[] {
-  const rangeMatch = ref.match(/^(.+\s\d+):(\d+)-(\d+)$/);
-  if (rangeMatch) {
-    const [, prefix, startStr, endStr] = rangeMatch;
+  const trimmed = ref.trim();
+
+  // 1) Full cross-chapter range: "Exodus 7:14-8:12"
+  const fullRange = trimmed.match(/^(.+?)\s(\d+):(\d+)-(\d+):(\d+)$/);
+  if (fullRange) {
+    const [, book, startChapStr, startVerseStr, endChapStr, endVerseStr] =
+      fullRange;
+    const startChap = parseInt(startChapStr, 10);
+    const startVerse = parseInt(startVerseStr, 10);
+    const endChap = parseInt(endChapStr, 10);
+    const endVerse = parseInt(endVerseStr, 10);
+
+    if (
+      Number.isNaN(startChap) ||
+      Number.isNaN(startVerse) ||
+      Number.isNaN(endChap) ||
+      Number.isNaN(endVerse)
+    ) {
+      return [trimmed];
+    }
+
+    // If the range is "backwards", just treat it as a single verse.
+    if (endChap < startChap || (endChap === startChap && endVerse < startVerse)) {
+      return [`${book} ${startChap}:${startVerse}`];
+    }
+
+    const verses: string[] = [];
+    for (let chap = startChap; chap <= endChap; chap++) {
+      const from = chap === startChap ? startVerse : 1;
+      const to = chap === endChap ? endVerse : MAX_VERSES_PER_CHAPTER;
+      for (let v = from; v <= to; v++) {
+        verses.push(`${book} ${chap}:${v}`);
+      }
+    }
+    return verses;
+  }
+
+  // 2) Same-chapter range (order-insensitive):
+  //    - "John 3:16-18"      → 16–18
+  //    - "Exodus 7:14-12"    → 12–14 (swapped)
+  const simpleRange = trimmed.match(/^(.+?)\s(\d+):(\d+)-(\d+)$/);
+  if (simpleRange) {
+    const [, book, chapStr, startStr, endStr] = simpleRange;
+    const chap = parseInt(chapStr, 10);
     const start = parseInt(startStr, 10);
     const end = parseInt(endStr, 10);
-    const refs: string[] = [];
-    for (let v = start; v <= end; v++) {
-      refs.push(`${prefix}:${v}`);
+
+    if (Number.isNaN(chap) || Number.isNaN(start) || Number.isNaN(end)) {
+      return [trimmed];
     }
-    return refs;
+
+    const verses: string[] = [];
+    const from = Math.min(start, end);
+    const to = Math.max(start, end);
+    for (let v = from; v <= to; v++) {
+      verses.push(`${book} ${chap}:${v}`);
+    }
+
+    return verses;
   }
-  return [ref.trim()];
+
+  // 3) Single verse (or anything else we don't specially parse)
+  return [trimmed];
 }
 /**
  * Normalizes a full reference like "Psalm 23:1" or "First John 3:16"

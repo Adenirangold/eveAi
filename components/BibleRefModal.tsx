@@ -99,7 +99,7 @@ export default function BibleRefModal({
                   { color: isDark ? "#666" : "#9CA3AF" },
                 ]}
               >
-                Reference not found
+                Unable to get Bible verse. Visit bible.org
               </Text>
             ) : (
               verses.map((v, idx) => (

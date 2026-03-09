@@ -4,6 +4,7 @@ import FormError from "@/components/FormError";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import icons from "@/constants/icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import ProfileSkeleton from "@/components/skeleton/ProfileSkeleton";
 import {
   useLogout,
   useProfile,
@@ -150,9 +151,9 @@ export default function Profile() {
   if (isLoading) {
     return (
       <Background>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#6C56FF" size="large" />
-        </View>
+        <SafeAreaView className="flex-1">
+          <ProfileSkeleton />
+        </SafeAreaView>
       </Background>
     );
   }
@@ -251,7 +252,7 @@ export default function Profile() {
                 className="flex-row items-center px-5 py-4"
                 style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
-                <View className="w-9 h-9 rounded-xl bg-[#6C56FF]/10 items-center justify-center mr-4">
+                <View className="w-9 h-9 rounded-xl items-center justify-center mr-4">
                   <Ionicons name="at-outline" size={18} color="#6C56FF" />
                 </View>
                 <Text
@@ -324,7 +325,7 @@ export default function Profile() {
               style={[{ backgroundColor: cardBg }, cardBorder]}
             >
               <View className="flex-row items-center px-5 py-3">
-                <View className="w-9 h-9 rounded-xl bg-[#6C56FF]/10 items-center justify-center mr-4">
+                <View className="w-9 h-9 rounded-xl items-center justify-center mr-4">
                   <Ionicons
                     name="notifications-outline"
                     size={18}
@@ -352,7 +353,7 @@ export default function Profile() {
                 className="flex-row items-center px-5 py-4"
                 style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
-                <View className="w-9 h-9 rounded-xl bg-[#6C56FF]/10 items-center justify-center mr-4">
+                <View className="w-9 h-9 rounded-xl items-center justify-center mr-4">
                   <Ionicons
                     name="lock-closed-outline"
                     size={18}
@@ -389,7 +390,7 @@ export default function Profile() {
                 className="flex-row items-center px-5 py-4"
                 style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
-                <View className="w-9 h-9 rounded-xl bg-[#6C56FF]/10 items-center justify-center mr-4">
+                <View className="w-9 h-9 rounded-xl items-center justify-center mr-4">
                   <Ionicons name="shield-outline" size={18} color="#6C56FF" />
                 </View>
                 <Text
@@ -412,7 +413,7 @@ export default function Profile() {
                 className="flex-row items-center px-5 py-4"
                 style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
-                <View className="w-9 h-9 rounded-xl bg-[#6C56FF]/10 items-center justify-center mr-4">
+                <View className="w-9 h-9 rounded-xl items-center justify-center mr-4">
                   <Ionicons
                     name="document-text-outline"
                     size={18}
@@ -439,7 +440,7 @@ export default function Profile() {
                 className="flex-row items-center px-5 py-4"
                 style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
-                <View className="w-9 h-9 rounded-xl bg-[#6C56FF]/10 items-center justify-center mr-4">
+                <View className="w-9 h-9 rounded-xl items-center justify-center mr-4">
                   <Ionicons
                     name="information-circle-outline"
                     size={18}
@@ -470,7 +471,7 @@ export default function Profile() {
                 className="flex-row items-center px-5 py-4"
                 style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
-                <View className="w-9 h-9 rounded-xl bg-[#6C56FF]/10 items-center justify-center mr-4">
+                <View className="w-9 h-9 rounded-xl items-center justify-center mr-4">
                   <Ionicons name="trash-outline" size={18} color="#6C56FF" />
                 </View>
                 <Text
@@ -491,7 +492,7 @@ export default function Profile() {
                 className="flex-row items-center px-5 py-4"
                 style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
-                <View className="w-9 h-9 rounded-xl bg-[#DC2626]/10 items-center justify-center mr-4">
+                <View className="w-9 h-9 rounded-xl items-center justify-center mr-4">
                   <Image
                     source={icons.logout}
                     style={{ width: 18, height: 18, tintColor: "#DC2626" }}
@@ -843,7 +844,7 @@ function InfoRow({
 }) {
   return (
     <View className="flex-row items-center px-5 py-4">
-      <View className="w-9 h-9 rounded-xl bg-[#6C56FF]/10 items-center justify-center mr-4">
+      <View className="w-9 h-9 rounded-xl items-center justify-center mr-4">
         <Ionicons name={icon} size={18} color="#6C56FF" />
       </View>
       <Text

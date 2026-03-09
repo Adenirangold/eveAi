@@ -68,6 +68,7 @@ export function useChangePassword() {
 export function useProfile() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const setUser = useAuthStore((s) => s.setUser);
+  const user = useAuthStore((s) => s.user);
 
   return useQuery({
     queryKey: ["profile"],
@@ -77,6 +78,9 @@ export function useProfile() {
       return user;
     },
     enabled: isAuthenticated,
+    // If email is not verified, poll every 5 minutes.
+    // Once verified, stop background refetches (manual pull-to-refresh only).
+    refetchInterval: user?.emailVerified ? false : 1000 * 60 * 5,
   });
 }
 
