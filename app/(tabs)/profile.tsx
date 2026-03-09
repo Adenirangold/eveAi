@@ -168,8 +168,9 @@ export default function Profile() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={isDark ? "#fff" : "#6C56FF"}
-              colors={[isDark ? "#fff" : "#6C56FF"]}
+              tintColor={isDark ? "#A78BFA" : "#1A1A2E"}
+              colors={[isDark ? "#A78BFA" : "#1A1A2E"]}
+              progressBackgroundColor={isDark ? "#1E1740" : "#FFFFFF"}
             />
           }
         >
@@ -423,6 +424,33 @@ export default function Profile() {
                   style={{ color: labelColor }}
                 >
                   Policy Terms
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={chevronColor}
+                />
+              </Pressable>
+
+              <Separator color={separatorColor} />
+
+              <Pressable
+                onPress={() => router.push("/about")}
+                className="flex-row items-center px-5 py-4"
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              >
+                <View className="w-9 h-9 rounded-xl bg-[#6C56FF]/10 items-center justify-center mr-4">
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={18}
+                    color="#6C56FF"
+                  />
+                </View>
+                <Text
+                  className="font-OutfitMedium text-base flex-1"
+                  style={{ color: labelColor }}
+                >
+                  About
                 </Text>
                 <Ionicons
                   name="chevron-forward"

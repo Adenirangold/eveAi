@@ -1,9 +1,8 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { getLocalStories, saveLocalStories } from "@/lib/database";
+import { useReels, REELS_QUERY_KEY } from "@/hooks/useReels";
 import type { Story } from "@/services/stories";
-import { storiesService } from "@/services/stories";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import React, {
   useCallback,
@@ -101,28 +100,13 @@ const Reels = React.forwardRef<ReelsHandle>((_props, ref) => {
   const [viewerVisible, setViewerVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const { data: stories = [], isPending: loading } = useQuery({
-    queryKey: ["stories"],
-    queryFn: async () => {
-      const remote = await storiesService.getStories();
-      saveLocalStories(remote);
-      return remote;
-    },
-    placeholderData: () => {
-      try {
-        const cached = getLocalStories();
-        return cached.length > 0 ? cached : undefined;
-      } catch {
-        return undefined;
-      }
-    },
-  });
+  const { data: stories = [], isPending: loading } = useReels();
 
   useImperativeHandle(
     ref,
     () => ({
       refetch: () => {
-        queryClient.invalidateQueries({ queryKey: ["stories"] });
+        queryClient.invalidateQueries({ queryKey: REELS_QUERY_KEY });
       },
     }),
     [queryClient],

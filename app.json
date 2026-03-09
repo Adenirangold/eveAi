@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "EveAi",
-    "slug": "EveAi",
+    "name": "Eve",
+    "slug": "Eve",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/appstore.png",
@@ -58,6 +58,12 @@
         "projectId": "df4b1695-94d2-4d2c-bb61-734f974018b7"
       }
     },
-    "owner": "adenirangold"
+    "owner": "adenirangold",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/df4b1695-94d2-4d2c-bb61-734f974018b7"
+    }
   }
 }

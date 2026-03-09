@@ -6,6 +6,8 @@ import {
 import { AvailableContact, contactsService } from "@/services/contacts";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetFlatList } from "@gorhom/bottom-sheet";
+import { REELS_QUERY_KEY } from "@/hooks/useReels";
+import { STORIES_QUERY_KEY } from "@/hooks/useStories";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useCallback, useState } from "react";
 import {
@@ -169,7 +171,8 @@ export default function AddContactsContent({
         setAddedIds((prev) => new Set(prev).add(contactId));
         queryClient.invalidateQueries({ queryKey: ["contacts"] });
         queryClient.invalidateQueries({ queryKey: ["availableContacts"] });
-        queryClient.invalidateQueries({ queryKey: ["stories"] });
+        queryClient.invalidateQueries({ queryKey: REELS_QUERY_KEY });
+        queryClient.invalidateQueries({ queryKey: STORIES_QUERY_KEY });
       } catch (err) {
         console.error("Failed to add contact:", err);
       } finally {

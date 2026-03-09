@@ -27,9 +27,10 @@ import "../global.css";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowList: true,
   }),
 });
 
@@ -44,11 +45,13 @@ function useNotificationListeners() {
   useEffect(() => {
     const receivedSub = Notifications.addNotificationReceivedListener(
       (notification) => {
-        const data = notification.request.content.data as {
-          contactId?: string;
-          content?: string;
-          createdAt?: string;
-        } | undefined;
+        const data = notification.request.content.data as
+          | {
+              contactId?: string;
+              content?: string;
+              createdAt?: string;
+            }
+          | undefined;
 
         if (!data?.contactId) return;
 
@@ -65,9 +68,11 @@ function useNotificationListeners() {
 
     const responseSub = Notifications.addNotificationResponseReceivedListener(
       (response) => {
-        const data = response.notification.request.content.data as {
-          contactId?: string;
-        } | undefined;
+        const data = response.notification.request.content.data as
+          | {
+              contactId?: string;
+            }
+          | undefined;
 
         if (data?.contactId) {
           router.push(`/chat/${data.contactId}`);
@@ -176,6 +181,13 @@ export default function RootLayout() {
                   />
                   <Stack.Screen
                     name="change-password"
+                    options={{
+                      headerShown: false,
+                      animation: "slide_from_right",
+                    }}
+                  />
+                  <Stack.Screen
+                    name="about"
                     options={{
                       headerShown: false,
                       animation: "slide_from_right",

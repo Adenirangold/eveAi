@@ -4,16 +4,13 @@ import VerifiedBadge from "@/components/VerifiedBadge";
 import ReelsSkeleton from "@/components/skeleton/ReelsSkeleton";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
-  getLocalStories,
   getViewedStoryIds,
   markStoryViewed,
-  saveLocalStories,
 } from "@/lib/database";
 import type { Story } from "@/services/stories";
-import { storiesService } from "@/services/stories";
+import { useStories } from "@/hooks/useStories";
 import CustomInput from "@/components/CustomInput";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useMemo, useState } from "react";
@@ -149,22 +146,7 @@ export default function StoryTab() {
     isPending: loading,
     isFetching,
     refetch,
-  } = useQuery({
-    queryKey: ["stories"],
-    queryFn: async () => {
-      const remote = await storiesService.getStories();
-      saveLocalStories(remote);
-      return remote;
-    },
-    placeholderData: () => {
-      try {
-        const cached = getLocalStories();
-        return cached.length > 0 ? cached : undefined;
-      } catch {
-        return undefined;
-      }
-    },
-  });
+  } = useStories();
 
   const filteredStories = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -303,8 +285,9 @@ export default function StoryTab() {
               <RefreshControl
                 refreshing={isFetching && !loading}
                 onRefresh={refetch}
-                tintColor={isDark ? "#fff" : "#6C56FF"}
-                colors={[isDark ? "#fff" : "#6C56FF"]}
+                tintColor={isDark ? "#A78BFA" : "#1A1A2E"}
+                colors={[isDark ? "#A78BFA" : "#1A1A2E"]}
+                progressBackgroundColor={isDark ? "#1E1740" : "#FFFFFF"}
               />
             }
           />

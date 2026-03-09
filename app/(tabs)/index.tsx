@@ -3,6 +3,7 @@ import Background from "@/components/BackGround";
 import CustomInput from "@/components/CustomInput";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import Reels from "@/components/reels";
+import { REELS_QUERY_KEY } from "@/hooks/useReels";
 import ChatRowSkeleton from "@/components/skeleton/ChatRowSkeleton";
 import ChatsHeaderSkeleton from "@/components/skeleton/ChatsHeaderSkeleton";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -350,7 +351,7 @@ export default function Index() {
 
       try {
         await contactsService.deleteContact(id);
-        queryClient.invalidateQueries({ queryKey: ["stories"] });
+        queryClient.invalidateQueries({ queryKey: REELS_QUERY_KEY });
       } catch (err) {
         console.error("Failed to delete remote contact:", err);
         queryClient.invalidateQueries({ queryKey: ["contacts"] });
@@ -368,6 +369,7 @@ export default function Index() {
 
   const onRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["contacts"] });
+    queryClient.invalidateQueries({ queryKey: REELS_QUERY_KEY });
     setSortKey((k) => k + 1);
   }, [queryClient]);
 
@@ -409,8 +411,9 @@ export default function Index() {
                 <RefreshControl
                   refreshing={isFetching && !loading}
                   onRefresh={onRefresh}
-                  tintColor={isDark ? "#fff" : "#6C56FF"}
-                  colors={[isDark ? "#fff" : "#6C56FF"]}
+                  tintColor={isDark ? "#A78BFA" : "#1A1A2E"}
+                  colors={[isDark ? "#A78BFA" : "#1A1A2E"]}
+                  progressBackgroundColor={isDark ? "#1E1740" : "#FFFFFF"}
                 />
               }
               ListEmptyComponent={
