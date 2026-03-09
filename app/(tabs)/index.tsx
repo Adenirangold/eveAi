@@ -3,11 +3,11 @@ import Background from "@/components/BackGround";
 import CustomInput from "@/components/CustomInput";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import Reels from "@/components/reels";
-import { REELS_QUERY_KEY } from "@/hooks/useReels";
-import { STORIES_QUERY_KEY } from "@/hooks/useStories";
 import ChatRowSkeleton from "@/components/skeleton/ChatRowSkeleton";
 import ChatsHeaderSkeleton from "@/components/skeleton/ChatsHeaderSkeleton";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { REELS_QUERY_KEY } from "@/hooks/useReels";
+import { STORIES_QUERY_KEY } from "@/hooks/useStories";
 import {
   deleteLocalContact,
   getLastMessageByContact,
@@ -19,6 +19,7 @@ import {
 } from "@/lib/database";
 import { Contact, contactsService } from "@/services/contacts";
 import { registerAndSyncPushToken } from "@/utils/notification";
+import * as Notifications from "expo-notifications";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image as ExpoImage } from "expo-image";
@@ -293,10 +294,7 @@ export default function Index() {
     registerAndSyncPushToken();
   }, []);
 
-  const {
-    data: contacts = [],
-    isPending: loading,
-  } = useQuery({
+  const { data: contacts = [], isPending: loading } = useQuery({
     queryKey: ["contacts"],
     queryFn: async () => {
       const remote = await contactsService.getContacts();
@@ -314,18 +312,54 @@ export default function Index() {
     },
   });
 
-  const lastMessages = useMemo(
-    () => getLastMessageByContact(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [contacts, sortKey],
-  );
-
   const { data: unreadCounts = new Map<string, UnreadInfo>() } = useQuery({
     queryKey: ["unreadCounts"],
     queryFn: () => getUnreadCounts(),
     refetchOnMount: true,
     staleTime: 0,
   });
+
+  const lastMessages = useMemo(
+    () => getLastMessageByContact(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [contacts, sortKey, unreadCounts],
+  );
+
+  const getDisplayLastMessage = useCallback(
+    (contactId: string): LastMessageInfo | undefined => {
+      const base = lastMessages.get(contactId);
+      const unread = unreadCounts.get(contactId);
+
+      if (!unread || !unread.lastAt || !unread.lastContent) {
+        return base;
+      }
+
+      if (!base) {
+        return { content: unread.lastContent, createdAt: unread.lastAt };
+      }
+
+      const baseTime = new Date(base.createdAt).getTime();
+      const unreadTime = new Date(unread.lastAt).getTime();
+
+      if (unreadTime > baseTime) {
+        return { content: unread.lastContent, createdAt: unread.lastAt };
+      }
+
+      return base;
+    },
+    [lastMessages, unreadCounts],
+  );
+
+  useEffect(() => {
+    let total = 0;
+    unreadCounts.forEach((info) => {
+      total += info.count;
+    });
+
+    Notifications.setBadgeCountAsync(total).catch(() => {
+      // Ignore badge errors (e.g., unsupported platform or permissions)
+    });
+  }, [unreadCounts]);
 
   const filteredContacts = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -334,11 +368,14 @@ export default function Index() {
       : [...contacts];
 
     return filtered.sort((a, b) => {
-      const aTime = lastMessages.get(a.id)?.createdAt || a.addedAt;
-      const bTime = lastMessages.get(b.id)?.createdAt || b.addedAt;
+      const aLast = getDisplayLastMessage(a.id);
+      const bLast = getDisplayLastMessage(b.id);
+
+      const aTime = aLast?.createdAt || a.addedAt;
+      const bTime = bLast?.createdAt || b.addedAt;
       return new Date(bTime).getTime() - new Date(aTime).getTime();
     });
-  }, [contacts, search, lastMessages]);
+  }, [contacts, search, getDisplayLastMessage]);
 
   const deleteContact = useCallback(
     async (id: string) => {
@@ -408,7 +445,7 @@ export default function Index() {
               renderItem={({ item }) => (
                 <ChatRow
                   item={item}
-                  lastMessage={lastMessages.get(item.id)}
+                  lastMessage={getDisplayLastMessage(item.id)}
                   unreadCount={unreadCounts.get(item.id)?.count ?? 0}
                   onDelete={deleteContact}
                   onPress={openChat}

@@ -89,13 +89,8 @@ export async function removePushTokenFromServer(): Promise<void> {
 
 export async function registerAndSyncPushToken(): Promise<boolean> {
   try {
-    const alreadyEnabled = await getNotificationsEnabled();
-    if (alreadyEnabled) {
-      const savedToken = await getSavedPushToken();
-      if (savedToken) return true;
-    }
-
     const token = await registerForPushNotificationsAsync();
+    console.log("token", token);
     if (!token) return false;
 
     await savePushToken(token);

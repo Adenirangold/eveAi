@@ -22,6 +22,7 @@ export const useAddContactsSheet = () => useContext(SheetContext);
 export default function TabLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasSeenOnboarding = useAuthStore((s) => s.hasSeenOnboarding);
+  const isLoading = useAuthStore((s) => s.isLoading);
   const isDark = useColorScheme() === "dark";
   const sheetRef = useRef<CustomBottomSheetRef>(null);
   const queryClient = useQueryClient();
@@ -34,6 +35,14 @@ export default function TabLayout() {
   const closeSheet = useCallback(() => {
     sheetRef.current?.dismiss();
   }, []);
+
+  // Wait for hydration before redirecting. On Android, the app often cold-starts
+  // after Google OAuth redirect (app was killed in background). Without this,
+  // we'd redirect to onboarding based on initial state (hasSeenOnboarding: false)
+  // before SecureStore has been read.
+  if (isLoading) {
+    return null;
+  }
 
   if (!isAuthenticated) {
     if (!hasSeenOnboarding) {

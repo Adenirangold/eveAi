@@ -52,18 +52,18 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "df4b1695-94d2-4d2c-bb61-734f974018b7"
-      }
-    },
     "owner": "adenirangold",
     "runtimeVersion": {
       "policy": "appVersion"
     },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0a00df29-753d-4939-aa49-dc5c6bbee750"
+      }
+    },
     "updates": {
-      "url": "https://u.expo.dev/df4b1695-94d2-4d2c-bb61-734f974018b7"
+      "url": "https://u.expo.dev/0a00df29-753d-4939-aa49-dc5c6bbee750"
     }
   }
 }

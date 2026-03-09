@@ -14,6 +14,8 @@ import "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
 import { useProfile } from "@/hooks/useAuth";
+import { STORIES_QUERY_KEY } from "@/hooks/useStories";
+import { REELS_QUERY_KEY } from "@/hooks/useReels";
 import { getActiveChatId } from "@/lib/active-chat";
 import { incrementUnread } from "@/lib/database";
 import { queryClient } from "@/lib/query-client";
@@ -57,21 +59,46 @@ function useNotificationListeners() {
       (notification) => {
         const data = notification.request.content.data as
           | {
+              type?: "message" | "story";
               contactId?: string;
               content?: string;
               createdAt?: string;
+              storyId?: string;
             }
           | undefined;
 
-        if (!data?.contactId) return;
+        if (!data) return;
 
-        if (getActiveChatId() === data.contactId) return;
+        const notificationBody = notification.request.content.body;
+        const notificationCreatedAt = new Date(
+          notification.date ?? Date.now(),
+        ).toISOString();
 
-        incrementUnread(
-          data.contactId,
-          data.content ?? null,
-          data.createdAt ?? new Date().toISOString(),
-        );
+        const isStory = data.type === "story";
+        const isMessage = !data.type || data.type === "message";
+
+        if (isStory) {
+          queryClient.invalidateQueries({ queryKey: STORIES_QUERY_KEY });
+          queryClient.invalidateQueries({ queryKey: REELS_QUERY_KEY });
+          return;
+        }
+
+        if (!isMessage || !data.contactId) return;
+
+        const contactId = data.contactId;
+
+        // Always try to refresh the latest messages from the server
+        queryClient.invalidateQueries({ queryKey: ["chat", contactId] });
+
+        // If the chat is currently open, don't increment unread – user is viewing it
+        if (getActiveChatId() === contactId) {
+          return;
+        }
+
+        const previewContent = data.content ?? notificationBody ?? null;
+        const previewCreatedAt = data.createdAt ?? notificationCreatedAt;
+
+        incrementUnread(contactId, previewContent, previewCreatedAt);
         queryClient.invalidateQueries({ queryKey: ["unreadCounts"] });
       },
     );
@@ -80,12 +107,27 @@ function useNotificationListeners() {
       (response) => {
         const data = response.notification.request.content.data as
           | {
+              type?: "message" | "story";
               contactId?: string;
+              storyId?: string;
             }
           | undefined;
 
-        if (data?.contactId) {
-          router.push(`/chat/${data.contactId}`);
+        if (!data) return;
+
+        const isStory = data.type === "story";
+        const isMessage = !data.type || data.type === "message";
+
+        if (isStory) {
+          queryClient.invalidateQueries({ queryKey: STORIES_QUERY_KEY });
+          queryClient.invalidateQueries({ queryKey: REELS_QUERY_KEY });
+          return;
+        }
+
+        if (isMessage && data.contactId) {
+          const contactId = data.contactId;
+          queryClient.invalidateQueries({ queryKey: ["chat", contactId] });
+          router.push(`/chat/${contactId}`);
         }
       },
     );
@@ -96,12 +138,27 @@ function useNotificationListeners() {
       const data = lastResponse?.notification.request.content
         .data as
         | {
+            type?: "message" | "story";
             contactId?: string;
+            storyId?: string;
           }
         | undefined;
 
-      if (data?.contactId) {
-        router.push(`/chat/${data.contactId}`);
+      if (!data) return;
+
+      const isStory = data.type === "story";
+      const isMessage = !data.type || data.type === "message";
+
+      if (isStory) {
+        queryClient.invalidateQueries({ queryKey: STORIES_QUERY_KEY });
+        queryClient.invalidateQueries({ queryKey: REELS_QUERY_KEY });
+        return;
+      }
+
+      if (isMessage && data.contactId) {
+        const contactId = data.contactId;
+        queryClient.invalidateQueries({ queryKey: ["chat", contactId] });
+        router.push(`/chat/${contactId}`);
       }
     })();
 

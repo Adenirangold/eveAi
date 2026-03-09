@@ -207,7 +207,8 @@ export default function ChatScreen() {
     queryFn: () => chatService.fetchAndSync(id!),
     enabled: !!id,
     initialData: localMessages.length > 0 ? localMessages : undefined,
-    refetchInterval: isSending ? false : 10_000,
+    refetchInterval: isSending ? false : 3000,
+    refetchIntervalInBackground: false,
     select: (data) => toGiftedMessages(data, contact ?? null),
   });
 
