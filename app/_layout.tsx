@@ -1,3 +1,4 @@
+import UpdateRequiredScreen from "@/components/UpdateRequiredScreen";
 import { CustomToast } from "@/components/Toast";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import {
@@ -11,6 +12,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useVersionCheck } from "@/hooks/useVersionCheck";
 import { useProfile } from "@/hooks/useAuth";
 import { getActiveChatId } from "@/lib/active-chat";
 import { incrementUnread } from "@/lib/database";
@@ -39,6 +41,14 @@ SplashScreen.preventAutoHideAsync();
 function ProfileHydrator() {
   useProfile();
   return null;
+}
+
+function VersionGate({ children }: { children: React.ReactNode }) {
+  const { needsUpdate } = useVersionCheck();
+  if (needsUpdate) {
+    return <UpdateRequiredScreen />;
+  }
+  return <>{children}</>;
 }
 
 function useNotificationListeners() {
@@ -150,7 +160,7 @@ export default function RootLayout() {
         <BottomSheetModalProvider>
           <ThemeProvider value={theme}>
             {isReady && (
-              <>
+              <VersionGate>
                 <ProfileHydrator />
                 <Stack
                   screenOptions={{
@@ -194,7 +204,7 @@ export default function RootLayout() {
                     }}
                   />
                 </Stack>
-              </>
+              </VersionGate>
             )}
             <StatusBar style={isDark ? "light" : "dark"} />
             <CustomToast />

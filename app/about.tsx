@@ -3,6 +3,7 @@ import Background from "@/components/BackGround";
 import images from "@/constants/images";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useResources } from "@/hooks/useAuth";
+import { useVersion } from "@/hooks/useVersion";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import * as WebBrowser from "expo-web-browser";
@@ -15,6 +16,8 @@ const APP_VERSION = Constants.expoConfig?.version ?? "1.0.0";
 export default function About() {
   const isDark = useColorScheme() === "dark";
   const { data: resources } = useResources();
+  const { data: versionInfo } = useVersion();
+  const displayVersion = versionInfo?.version ?? APP_VERSION;
 
   const privacyUrl = resources?.privacyUrl ?? "https://binahstudio.com";
   const policyUrl = resources?.policyUrl ?? "https://binahstudio.com";
@@ -72,7 +75,7 @@ export default function About() {
                 marginTop: 4,
               }}
             >
-              Version {APP_VERSION}
+              Version {displayVersion}
             </Text>
           </View>
 
@@ -121,7 +124,7 @@ export default function About() {
               <Row
                 icon="code-slash-outline"
                 label="Version"
-                value={APP_VERSION}
+                value={displayVersion}
                 labelColor={labelColor}
                 valueColor={valueColor}
               />

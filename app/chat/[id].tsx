@@ -5,7 +5,7 @@ import { setActiveChatId } from "@/lib/active-chat";
 import { cleanRef } from "@/lib/bible";
 import { clearUnread } from "@/lib/database";
 import { ChatMessage, chatService } from "@/services/chat";
-import { Contact } from "@/services/contacts";
+import { contactsService, type Contact } from "@/services/contacts";
 import { useAuthStore } from "@/store/auth-store";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -190,10 +190,12 @@ export default function ChatScreen() {
     [id],
   );
 
-  const contact = useMemo(() => {
-    const contacts = queryClient.getQueryData<Contact[]>(["contacts"]);
-    return contacts?.find((c) => c.id === id) ?? null;
-  }, [id, queryClient]);
+  const { data: contact } = useQuery({
+    queryKey: ["contacts"],
+    queryFn: () => contactsService.getContacts(),
+    select: (data) => (data ?? []).find((c) => c.id === id) ?? null,
+    enabled: !!id,
+  });
 
   const localMessages = useMemo(
     () => (id ? chatService.getLocalMessages(id) : []),
@@ -206,7 +208,7 @@ export default function ChatScreen() {
     enabled: !!id,
     initialData: localMessages.length > 0 ? localMessages : undefined,
     refetchInterval: isSending ? false : 10_000,
-    select: (data) => toGiftedMessages(data, contact),
+    select: (data) => toGiftedMessages(data, contact ?? null),
   });
 
   const handleViewProfile = useCallback(() => {
