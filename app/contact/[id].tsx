@@ -5,6 +5,7 @@ import { getLocalContactById } from "@/lib/database";
 import { contactsService, type AvailableContact } from "@/services/contacts";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
+import { Image as ExpoImage } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import {
@@ -15,7 +16,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Image as ExpoImage } from "expo-image";
 
 const AVATAR_SIZE = 100;
 
@@ -58,9 +58,7 @@ export default function ContactProfileScreen() {
         >
           <Ionicons name="chevron-back" size={24} color={iconColor} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: iconColor }]}>
-          Profile
-        </Text>
+        <Text style={[styles.headerTitle, { color: iconColor }]}>Profile</Text>
         <View style={styles.backButton} />
       </View>
 
@@ -87,15 +85,16 @@ export default function ContactProfileScreen() {
                   { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
                 ]}
               >
-                <Ionicons name="person" size={40} color={isDark ? "#fff" : "#6C56FF"} />
+                <Ionicons
+                  name="person"
+                  size={40}
+                  color={isDark ? "#fff" : "#6C56FF"}
+                />
               </View>
             )}
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Text
-                style={[
-                  styles.name,
-                  { color: isDark ? "#fff" : "#1A1A2E" },
-                ]}
+                style={[styles.name, { color: isDark ? "#fff" : "#1A1A2E" }]}
               >
                 {contact.name}
               </Text>
@@ -118,9 +117,7 @@ export default function ContactProfileScreen() {
               style={[
                 styles.cardLabel,
                 {
-                  color: isDark
-                    ? "rgba(255,255,255,0.5)"
-                    : "rgba(0,0,0,0.4)",
+                  color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)",
                 },
               ]}
             >

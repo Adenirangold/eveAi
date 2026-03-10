@@ -11,13 +11,19 @@ import { STORIES_QUERY_KEY } from "@/hooks/useStories";
 import {
   deleteLocalContact,
   getLastMessageByContact,
+  getLocalAvailableContacts,
   getLocalContacts,
   getUnreadCounts,
+  saveLocalAvailableContacts,
   saveLocalContacts,
   type LastMessageInfo,
   type UnreadInfo,
 } from "@/lib/database";
-import { Contact, contactsService } from "@/services/contacts";
+import {
+  Contact,
+  contactsService,
+  type AvailableContact,
+} from "@/services/contacts";
 import { registerAndSyncPushToken } from "@/utils/notification";
 import * as Notifications from "expo-notifications";
 import { Ionicons } from "@expo/vector-icons";
@@ -32,6 +38,7 @@ import React, {
   useState,
 } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -227,6 +234,113 @@ function ChatRow({
   );
 }
 
+function AvailableContactRow({
+  item,
+  onAdd,
+  adding,
+  added,
+}: {
+  item: AvailableContact;
+  onAdd: (id: string) => void;
+  adding: boolean;
+  added: boolean;
+}) {
+  const isDark = useColorScheme() === "dark";
+
+  return (
+    <View
+      style={[
+        styles.chatRow,
+        {
+          borderBottomColor: isDark ? "#1A1354" : "rgba(0,0,0,0.06)",
+          borderBottomWidth: isDark ? 0.17 : 0.8,
+        },
+      ]}
+    >
+      <View style={styles.avatarContainer}>
+        {item.avatar ? (
+          <ExpoImage
+            source={item.avatar}
+            style={[
+              styles.chatAvatar,
+              { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+            ]}
+            contentFit="cover"
+          />
+        ) : (
+          <View
+            style={[
+              styles.chatInitials,
+              { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+            ]}
+          >
+            <Ionicons
+              name="person"
+              size={22}
+              color={isDark ? "#fff" : "#6C56FF"}
+            />
+          </View>
+        )}
+      </View>
+
+      <View style={styles.chatMid}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Text
+            style={[styles.chatName, { color: isDark ? "#fff" : "#1A1A2E" }]}
+            numberOfLines={1}
+          >
+            {item.name}
+          </Text>
+          {item.isPremium && <VerifiedBadge size={15} />}
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={styles.availableAddButton}
+        activeOpacity={0.7}
+        onPress={() => onAdd(item.id)}
+        disabled={adding || added}
+      >
+        {adding ? (
+          <ActivityIndicator size="small" color={isDark ? "#fff" : "#6C56FF"} />
+        ) : added ? (
+          <>
+            <Ionicons
+              name="checkmark"
+              size={16}
+              color={isDark ? "#fff" : "#6B7280"}
+            />
+            <Text
+              style={[
+                styles.availableAddText,
+                !isDark && { color: "#6B7280" },
+              ]}
+            >
+              Added
+            </Text>
+          </>
+        ) : (
+          <>
+            <Ionicons
+              name="person-add-outline"
+              size={16}
+              color={isDark ? "#fff" : "#6C56FF"}
+            />
+            <Text
+              style={[
+                styles.availableAddText,
+                { color: isDark ? "#fff" : "#6C56FF" },
+              ]}
+            >
+              Add
+            </Text>
+          </>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 function ChatsHeader({
   search,
   onSearchChange,
@@ -283,6 +397,12 @@ export default function Index() {
   const [sortKey, setSortKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const isDark = useColorScheme() === "dark";
+  const [addingAvailableIds, setAddingAvailableIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [addedAvailableIds, setAddedAvailableIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -305,6 +425,23 @@ export default function Index() {
     placeholderData: () => {
       try {
         const cached = getLocalContacts();
+        return cached.length > 0 ? cached : undefined;
+      } catch {
+        return undefined;
+      }
+    },
+  });
+
+  const { data: availableContacts = [] } = useQuery({
+    queryKey: ["availableContacts"],
+    queryFn: async () => {
+      const remote = await contactsService.getAvailableContacts();
+      saveLocalAvailableContacts(remote);
+      return remote;
+    },
+    placeholderData: () => {
+      try {
+        const cached = getLocalAvailableContacts();
         return cached.length > 0 ? cached : undefined;
       } catch {
         return undefined;
@@ -377,6 +514,40 @@ export default function Index() {
     });
   }, [contacts, search, getDisplayLastMessage]);
 
+  const availableMatches = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return [];
+
+    const currentIds = new Set(contacts.map((c) => c.id));
+
+    return availableContacts.filter(
+      (c) => !currentIds.has(c.id) && c.name.toLowerCase().includes(q),
+    );
+  }, [search, contacts, availableContacts]);
+
+  const handleAddAvailable = useCallback(
+    async (contactId: string) => {
+      setAddingAvailableIds((prev) => new Set(prev).add(contactId));
+      try {
+        await contactsService.addContact(contactId);
+        setAddedAvailableIds((prev) => new Set(prev).add(contactId));
+        await queryClient.invalidateQueries({ queryKey: ["contacts"] });
+        await queryClient.invalidateQueries({ queryKey: ["availableContacts"] });
+        await queryClient.invalidateQueries({ queryKey: REELS_QUERY_KEY });
+        await queryClient.invalidateQueries({ queryKey: STORIES_QUERY_KEY });
+      } catch (err) {
+        console.error("Failed to add available contact:", err);
+      } finally {
+        setAddingAvailableIds((prev) => {
+          const next = new Set(prev);
+          next.delete(contactId);
+          return next;
+        });
+      }
+    },
+    [queryClient],
+  );
+
   const deleteContact = useCallback(
     async (id: string) => {
       queryClient.setQueryData<Contact[]>(["contacts"], (old) =>
@@ -440,17 +611,41 @@ export default function Index() {
               />
             </View>
             <FlatList
-              data={filteredContacts}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <ChatRow
-                  item={item}
-                  lastMessage={getDisplayLastMessage(item.id)}
-                  unreadCount={unreadCounts.get(item.id)?.count ?? 0}
-                  onDelete={deleteContact}
-                  onPress={openChat}
-                />
-              )}
+              data={[
+                ...filteredContacts.map((c) => ({
+                  kind: "contact" as const,
+                  contact: c,
+                })),
+                ...(search.trim().length > 0
+                  ? availableMatches.map((c) => ({
+                      kind: "available" as const,
+                      contact: c,
+                    }))
+                  : []),
+              ]}
+              keyExtractor={(item) =>
+                item.kind === "contact"
+                  ? `contact-${item.contact.id}`
+                  : `available-${item.contact.id}`
+              }
+              renderItem={({ item }) =>
+                item.kind === "contact" ? (
+                  <ChatRow
+                    item={item.contact}
+                    lastMessage={getDisplayLastMessage(item.contact.id)}
+                    unreadCount={unreadCounts.get(item.contact.id)?.count ?? 0}
+                    onDelete={deleteContact}
+                    onPress={openChat}
+                  />
+                ) : (
+                  <AvailableContactRow
+                    item={item.contact}
+                    onAdd={handleAddAvailable}
+                    adding={addingAvailableIds.has(item.contact.id)}
+                    added={addedAvailableIds.has(item.contact.id)}
+                  />
+                )
+              }
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
               refreshControl={
@@ -628,5 +823,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     fontFamily: "Outfit-SemiBold",
+  },
+  availableAddButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  availableAddText: {
+    fontSize: 13,
+    fontWeight: "600",
+    fontFamily: "Outfit-Medium",
   },
 });

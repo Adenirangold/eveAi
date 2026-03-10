@@ -13,9 +13,16 @@ import {
   useUpdateFullName,
   useUpdateUsername,
 } from "@/hooks/useAuth";
-import { useNotificationToggle } from "@/hooks/useNotifications";
 import { useThemeStore } from "@/store/theme-store";
 import { fullNameSchema } from "@/validation/schema";
+import {
+  clearPushToken,
+  getNotificationsEnabled,
+  getPermissionStatus,
+  registerAndSyncPushToken,
+  removePushTokenFromServer,
+  setNotificationsEnabled,
+} from "@/utils/notification";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
@@ -33,6 +40,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 function getInitials(name?: string | null): string {
@@ -77,7 +85,12 @@ export default function Profile() {
     setRefreshing(false);
   }, [queryClient]);
 
-  const notifications = useNotificationToggle();
+  const [notificationsEnabled, setNotificationsEnabledState] = useState(false);
+  const [isNotificationModalVisible, setIsNotificationModalVisible] =
+    useState(false);
+  const [isNotificationPending, setIsNotificationPending] = useState(false);
+  const [isNotificationTurningOff, setIsNotificationTurningOff] =
+    useState(false);
   const [fullName, setFullName] = useState("");
   const [isEditingName, setIsEditingName] = useState(false);
   const [username, setUsername] = useState("");
@@ -91,6 +104,20 @@ export default function Profile() {
     if (profile?.name) setFullName(profile.name);
     if (profile?.username) setUsername(profile.username);
   }, [profile?.name, profile?.username]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [storedEnabled, permission] = await Promise.all([
+          getNotificationsEnabled(),
+          getPermissionStatus(),
+        ]);
+        setNotificationsEnabledState(storedEnabled && permission);
+      } catch {
+        setNotificationsEnabledState(false);
+      }
+    })();
+  }, []);
 
   const handleSaveFullName = () => {
     setNameError("");
@@ -129,6 +156,61 @@ export default function Profile() {
   const handleLogout = async () => {
     await logout();
     router.replace("/(auth)/sign-in");
+  };
+
+  const handleEnableNotifications = async () => {
+    setIsNotificationPending(true);
+    try {
+      const ok = await registerAndSyncPushToken();
+      if (!ok) {
+        Toast.show({
+          type: "error",
+          text1: "Unable to turn on notifications",
+          text2: "Please try again later.",
+        });
+        return;
+      }
+
+      setNotificationsEnabledState(true);
+      setIsNotificationModalVisible(false);
+
+      Toast.show({
+        type: "success",
+        text1: "Notifications enabled",
+        text2: "You can now receive notifications from your favourite Bible character.",
+      });
+    } catch {
+      Toast.show({
+        type: "error",
+        text1: "Unable to turn on notifications",
+        text2: "Please try again later.",
+      });
+    } finally {
+      setIsNotificationPending(false);
+    }
+  };
+
+  const handleDisableNotifications = async () => {
+    setIsNotificationTurningOff(true);
+    try {
+      await removePushTokenFromServer();
+      await clearPushToken();
+      await setNotificationsEnabled(false);
+      setNotificationsEnabledState(false);
+      setIsNotificationModalVisible(false);
+      Toast.show({
+        type: "success",
+        text1: "Notifications turned off",
+      });
+    } catch {
+      Toast.show({
+        type: "error",
+        text1: "Unable to turn off notifications",
+        text2: "Please try again later.",
+      });
+    } finally {
+      setIsNotificationTurningOff(false);
+    }
   };
 
   const privacyUrl = resources?.privacyUrl ?? "https://binahstudio.com";
@@ -324,7 +406,11 @@ export default function Profile() {
               className="rounded-2xl"
               style={[{ backgroundColor: cardBg }, cardBorder]}
             >
-              <View className="flex-row items-center px-5 py-3">
+              <Pressable
+                onPress={() => setIsNotificationModalVisible(true)}
+                className="flex-row items-center px-5 py-3"
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              >
                 <View className="w-9 h-9 rounded-xl items-center justify-center mr-4">
                   <Ionicons
                     name="notifications-outline"
@@ -338,15 +424,18 @@ export default function Profile() {
                 >
                   Notification
                 </Text>
-                <CustomSwitch
-                  value={notifications.isEnabled}
-                  onValueChange={notifications.toggle}
-                  disabled={notifications.isLoading}
-                  trackColorFalse={isDark ? "#2D2B45" : "#D1D5DB"}
-                  trackColorTrue="#6C56FF"
-                  scale={0.9}
+                <Text
+                  className="font-OutfitMedium text-sm mr-1"
+                  style={{ color: notificationsEnabled ? "#22C55E" : subtextColor }}
+                >
+                  {notificationsEnabled ? "On" : "Off"}
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={chevronColor}
                 />
-              </View>
+              </Pressable>
               <Separator color={separatorColor} />
               <Pressable
                 onPress={() => router.push("/change-password")}
@@ -506,6 +595,165 @@ export default function Profile() {
             </View>
           </View>
         </ScrollView>
+
+        {/* Notification Modal */}
+        <Modal
+          visible={isNotificationModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            if (!isNotificationPending) {
+              setIsNotificationModalVisible(false);
+            }
+          }}
+        >
+          <Pressable
+            className="flex-1 items-center justify-center"
+            style={{
+              backgroundColor: isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.3)",
+            }}
+            onPress={() => {
+              if (!isNotificationPending) {
+                setIsNotificationModalVisible(false);
+              }
+            }}
+          >
+            <Pressable
+              className="rounded-3xl w-[85%] max-w-[340px] p-6"
+              style={{ backgroundColor: modalBg }}
+              onPress={() => {}}
+            >
+              <View className="items-center mb-4">
+                <View className="w-14 h-14 rounded-full bg-[#6C56FF]/10 items-center justify-center">
+                  <Ionicons
+                    name="notifications-outline"
+                    size={30}
+                    color="#6C56FF"
+                  />
+                </View>
+              </View>
+              {notificationsEnabled ? (
+                <>
+                  <Text
+                    className="font-OutfitSemiBold text-xl text-center mb-2"
+                    style={{ color: valueColor }}
+                  >
+                    Turn off notifications?
+                  </Text>
+                  <Text
+                    className="font-Outfit text-sm text-center mb-6"
+                    style={{ color: subtextColor }}
+                  >
+                    You won&apos;t receive updates or messages from your
+                    favourite Bible characters. You can turn this back on at any
+                    time.
+                  </Text>
+
+                  <View className="flex-row gap-3 mt-1">
+                    <Pressable
+                      onPress={() => {
+                        if (!isNotificationTurningOff) {
+                          setIsNotificationModalVisible(false);
+                        }
+                      }}
+                      className="flex-1 rounded-xl py-3 items-center"
+                      style={[
+                        {
+                          backgroundColor: isDark ? "#2D2B45" : "#F3F4F6",
+                        },
+                      ]}
+                    >
+                      <Text
+                        className="font-OutfitMedium text-sm"
+                        style={{ color: valueColor }}
+                      >
+                        Keep on
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={handleDisableNotifications}
+                      disabled={isNotificationTurningOff}
+                      className="flex-1 rounded-xl py-3 items-center"
+                      style={[
+                        {
+                          backgroundColor: "#DC2626",
+                          opacity: isNotificationTurningOff ? 0.7 : 1,
+                        },
+                      ]}
+                    >
+                      {isNotificationTurningOff ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text className="font-OutfitSemiBold text-sm text-white">
+                          Turn off
+                        </Text>
+                      )}
+                    </Pressable>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text
+                    className="font-OutfitSemiBold text-xl text-center mb-2"
+                    style={{ color: valueColor }}
+                  >
+                    Enable Notifications?
+                  </Text>
+                  <Text
+                    className="font-Outfit text-sm text-center mb-6"
+                    style={{ color: subtextColor }}
+                  >
+                    Stay up to date with updates and messages from your
+                    favourite Bible characters. You can change this later in
+                    your settings.
+                  </Text>
+
+                  <View className="flex-row gap-3 mt-1">
+                    <Pressable
+                      onPress={() => {
+                        if (!isNotificationPending) {
+                          setIsNotificationModalVisible(false);
+                        }
+                      }}
+                      className="flex-1 rounded-xl py-3 items-center"
+                      style={[
+                        {
+                          backgroundColor: isDark ? "#2D2B45" : "#F3F4F6",
+                        },
+                      ]}
+                    >
+                      <Text
+                        className="font-OutfitMedium text-sm"
+                        style={{ color: valueColor }}
+                      >
+                        Not now
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={handleEnableNotifications}
+                      disabled={isNotificationPending}
+                      className="flex-1 rounded-xl py-3 items-center"
+                      style={[
+                        {
+                          backgroundColor: "#6C56FF",
+                          opacity: isNotificationPending ? 0.7 : 1,
+                        },
+                      ]}
+                    >
+                      {isNotificationPending ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text className="font-OutfitSemiBold text-sm text-white">
+                          Yes, enable
+                        </Text>
+                      )}
+                    </Pressable>
+                  </View>
+                </>
+              )}
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         {/* Update Name Modal */}
         <Modal

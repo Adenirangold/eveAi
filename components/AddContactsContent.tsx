@@ -1,4 +1,7 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import CustomInput from "@/components/CustomInput";
+import { REELS_QUERY_KEY } from "@/hooks/useReels";
+import { STORIES_QUERY_KEY } from "@/hooks/useStories";
 import {
   getLocalAvailableContacts,
   saveLocalAvailableContacts,
@@ -6,10 +9,9 @@ import {
 import { AvailableContact, contactsService } from "@/services/contacts";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetFlatList } from "@gorhom/bottom-sheet";
-import { REELS_QUERY_KEY } from "@/hooks/useReels";
-import { STORIES_QUERY_KEY } from "@/hooks/useStories";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useCallback, useState } from "react";
+import { Image as ExpoImage } from "expo-image";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -18,9 +20,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Image as ExpoImage } from "expo-image";
-import ContactSkeleton from "./skeleton/ContactSkeleton";
 import VerifiedBadge from "./VerifiedBadge";
+import ContactSkeleton from "./skeleton/ContactSkeleton";
 
 const AVATAR_SIZE = 50;
 
@@ -72,7 +73,11 @@ function ContactRow({
               { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
             ]}
           >
-            <Ionicons name="person" size={22} color={isDark ? "#fff" : "#6C56FF"} />
+            <Ionicons
+              name="person"
+              size={22}
+              color={isDark ? "#fff" : "#6C56FF"}
+            />
           </View>
         )}
       </View>
@@ -96,13 +101,7 @@ function ContactRow({
       </View>
 
       <TouchableOpacity
-        style={[
-          styles.addButton,
-          { backgroundColor: accentBg },
-          added && {
-            backgroundColor: isDark ? "#2E2E4A" : "#D1D5DB",
-          },
-        ]}
+        style={[styles.addButton]}
         activeOpacity={0.7}
         onPress={() => onAdd(item.id)}
         disabled={adding || added}
@@ -128,7 +127,9 @@ function ContactRow({
         ) : (
           <>
             <Ionicons name="person-add-outline" size={16} color={accentText} />
-            <Text style={[styles.addButtonText, { color: accentText }]}>Add</Text>
+            <Text style={[styles.addButtonText, { color: accentText }]}>
+              Add
+            </Text>
           </>
         )}
       </TouchableOpacity>
@@ -145,6 +146,7 @@ export default function AddContactsContent({
   const queryClient = useQueryClient();
   const [addingIds, setAddingIds] = useState<Set<string>>(new Set());
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState("");
 
   const { data: contacts = [], isPending: loading } = useQuery({
     queryKey: ["availableContacts"],
@@ -162,6 +164,12 @@ export default function AddContactsContent({
       }
     },
   });
+
+  const filteredContacts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return contacts;
+    return contacts.filter((c) => c.name.toLowerCase().includes(q));
+  }, [contacts, search]);
 
   const handleAdd = useCallback(
     async (contactId: string) => {
@@ -200,19 +208,31 @@ export default function AddContactsContent({
             color={isDark ? "#fff" : "#1A1A2E"}
           />
         </TouchableOpacity>
-        <Text
-          style={[styles.title, { color: isDark ? "#fff" : "#1A1A2E" }]}
-        >
+        <Text style={[styles.title, { color: isDark ? "#fff" : "#1A1A2E" }]}>
           Add Characters
         </Text>
         <View style={styles.headerSpacer} />
       </View>
 
+      {contacts.length > 0 && (
+        <View style={styles.searchContainer}>
+          <CustomInput
+            value={search}
+            onChangeText={setSearch}
+            search
+            placeholder="Search"
+            backgroundColor={isDark ? "#1D1B31" : "#F0EEF9"}
+            borderColor={isDark ? "#262626" : "#E0DCF0"}
+            borderRadius={15}
+          />
+        </View>
+      )}
+
       {loading ? (
         <ContactSkeleton />
       ) : (
         <BottomSheetFlatList
-          data={contacts}
+          data={filteredContacts}
           keyExtractor={(item: AvailableContact) => item.id}
           renderItem={({ item }: { item: AvailableContact }) => (
             <ContactRow
@@ -226,10 +246,7 @@ export default function AddContactsContent({
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <Text
-              style={[
-                styles.emptyText,
-                { color: isDark ? "#888" : "#6B7280" },
-              ]}
+              style={[styles.emptyText, { color: isDark ? "#888" : "#6B7280" }]}
             >
               No characters available
             </Text>
@@ -265,6 +282,10 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     width: 36,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
   listContent: {
     paddingHorizontal: 20,

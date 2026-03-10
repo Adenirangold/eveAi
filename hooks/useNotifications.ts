@@ -1,81 +1,68 @@
 import {
   clearPushToken,
   getNotificationsEnabled,
+  getPermissionStatus,
   registerAndSyncPushToken,
   removePushTokenFromServer,
   setNotificationsEnabled,
 } from "@/utils/notification";
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Linking } from "react-native";
 
 export function useNotificationToggle() {
   const [isEnabled, setIsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getNotificationsEnabled()
-      .then((enabled) => setIsEnabled(enabled))
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
-  }, []);
+    (async () => {
+      try {
+        const [storedEnabled, permissionGranted] = await Promise.all([
+          getNotificationsEnabled(),
+          getPermissionStatus(),
+        ]);
 
-  const handleEnable = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const enabled = await registerAndSyncPushToken();
+        const effectiveEnabled = storedEnabled && permissionGranted;
+        setIsEnabled(effectiveEnabled);
 
-      if (enabled) {
-        setIsEnabled(true);
-      } else {
-        Alert.alert(
-          "Notifications Disabled",
-          "Please enable notifications in your device settings.",
-          [
-            { text: "Cancel", style: "cancel" },
-            { text: "Open Settings", onPress: () => Linking.openSettings() },
-          ],
-        );
+        if (!permissionGranted && storedEnabled) {
+          // OS permission was revoked; keep local flag in sync
+          await setNotificationsEnabled(false);
+        }
+      } catch {
+        setIsEnabled(false);
+      } finally {
+        setIsLoading(false);
       }
-    } catch {
-      // Failed silently — switch stays off
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const handleDisable = useCallback(() => {
-    Alert.alert(
-      "Turn Off Notifications",
-      "Are you sure you want to disable push notifications?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Turn Off",
-          style: "destructive",
-          onPress: async () => {
-            setIsEnabled(false);
-            try {
-              await removePushTokenFromServer();
-              await clearPushToken();
-              await setNotificationsEnabled(false);
-            } catch {
-              setIsEnabled(true);
-            }
-          },
-        },
-      ],
-    );
+    })();
   }, []);
 
   const toggle = useCallback(
-    (value: boolean) => {
-      if (value) {
-        handleEnable();
-      } else {
-        handleDisable();
+    async (value: boolean) => {
+      const previous = isEnabled;
+      setIsEnabled(value);
+      setIsLoading(true);
+
+      try {
+        if (value) {
+          const enabled = await registerAndSyncPushToken();
+          if (!enabled) {
+            // Permission not granted or token failed – reflect real state
+            setIsEnabled(false);
+          }
+        } else {
+          try {
+            await removePushTokenFromServer();
+            await clearPushToken();
+            await setNotificationsEnabled(false);
+          } catch {
+            // If turning off fails, revert to previous state
+            setIsEnabled(previous);
+          }
+        }
+      } finally {
+        setIsLoading(false);
       }
     },
-    [handleEnable, handleDisable],
+    [isEnabled],
   );
 
   return { isEnabled, isLoading, toggle };
