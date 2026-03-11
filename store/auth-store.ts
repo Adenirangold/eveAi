@@ -10,6 +10,7 @@ export interface User {
   emailVerified: boolean;
   createdAt: string;
   lastActiveAt: string;
+  notificationStatus?: boolean;
 }
 
 interface AuthState {

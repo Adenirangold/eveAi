@@ -1,10 +1,11 @@
 import BibleRefModal from "@/components/BibleRefModal";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { invalidateUnreadSummary } from "@/hooks/useUnreadSummary";
 import { setActiveChatId } from "@/lib/active-chat";
 import { cleanRef, formatRefLabel } from "@/lib/bible";
-import { clearUnread } from "@/lib/database";
 import { ChatMessage, chatService } from "@/services/chat";
+import { unreadService } from "@/services/unread";
 import { contactsService, type Contact } from "@/services/contacts";
 import { useAuthStore } from "@/store/auth-store";
 import { Ionicons } from "@expo/vector-icons";
@@ -171,12 +172,9 @@ export default function ChatScreen() {
   useEffect(() => {
     if (!id) return;
     setActiveChatId(id);
-    clearUnread(id);
-    queryClient.invalidateQueries({ queryKey: ["unreadCounts"] });
-    return () => {
-      setActiveChatId(null);
-    };
-  }, [id, queryClient]);
+    unreadService.markRead(id).finally(invalidateUnreadSummary);
+    return () => setActiveChatId(null);
+  }, [id]);
 
   const handleTextChange = useCallback(
     (text: string) => {

@@ -17,7 +17,7 @@ import { useProfile } from "@/hooks/useAuth";
 import { STORIES_QUERY_KEY } from "@/hooks/useStories";
 import { REELS_QUERY_KEY } from "@/hooks/useReels";
 import { getActiveChatId } from "@/lib/active-chat";
-import { incrementUnread } from "@/lib/database";
+import { invalidateUnreadSummary } from "@/hooks/useUnreadSummary";
 import { queryClient } from "@/lib/query-client";
 import QueryProvider from "@/providers/QueryProvider";
 import { useAuthStore } from "@/store/auth-store";
@@ -87,19 +87,11 @@ function useNotificationListeners() {
 
         const contactId = data.contactId;
 
-        // Always try to refresh the latest messages from the server
         queryClient.invalidateQueries({ queryKey: ["chat", contactId] });
 
-        // If the chat is currently open, don't increment unread – user is viewing it
-        if (getActiveChatId() === contactId) {
-          return;
-        }
+        if (getActiveChatId() === contactId) return;
 
-        const previewContent = data.content ?? notificationBody ?? null;
-        const previewCreatedAt = data.createdAt ?? notificationCreatedAt;
-
-        incrementUnread(contactId, previewContent, previewCreatedAt);
-        queryClient.invalidateQueries({ queryKey: ["unreadCounts"] });
+        invalidateUnreadSummary();
       },
     );
 

@@ -10,7 +10,7 @@ const fullNameRegex = /^[A-Za-z]{3,}\s+\S+.*$/;
 export const fullNameSchema = z
   .string()
   .min(3, "Full name must be at least 3 characters")
-  .regex(fullNameRegex, "Please enter your full name eg 'John Doe'");
+  .regex(fullNameRegex, "Please enter your full name");
 
 export const signUpSchema = z.object({
   fullName: fullNameSchema,

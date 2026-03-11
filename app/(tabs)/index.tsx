@@ -1,11 +1,15 @@
 import { useAddContactsSheet } from "@/app/(tabs)/_layout";
 import Background from "@/components/BackGround";
 import CustomInput from "@/components/CustomInput";
+import MaintenanceModal from "@/components/MaintenanceModal";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import Reels from "@/components/reels";
 import ChatRowSkeleton from "@/components/skeleton/ChatRowSkeleton";
 import ChatsHeaderSkeleton from "@/components/skeleton/ChatsHeaderSkeleton";
+
+import images from "@/constants/images";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useMaintenanceCheck } from "@/hooks/useMaintenanceCheck";
 import { REELS_QUERY_KEY } from "@/hooks/useReels";
 import { STORIES_QUERY_KEY } from "@/hooks/useStories";
 import {
@@ -13,7 +17,6 @@ import {
   getLastMessageByContact,
   getLocalAvailableContacts,
   getLocalContacts,
-  getUnreadCounts,
   saveLocalAvailableContacts,
   saveLocalContacts,
   type LastMessageInfo,
@@ -24,8 +27,11 @@ import {
   contactsService,
   type AvailableContact,
 } from "@/services/contacts";
+import {
+  invalidateUnreadSummary,
+  useUnreadSummary,
+} from "@/hooks/useUnreadSummary";
 import { registerAndSyncPushToken } from "@/utils/notification";
-import * as Notifications from "expo-notifications";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image as ExpoImage } from "expo-image";
@@ -112,12 +118,14 @@ function ChatRow({
   unreadCount,
   onDelete,
   onPress,
+  isFirst,
 }: {
   item: Contact;
   lastMessage?: LastMessageInfo;
   unreadCount: number;
   onDelete: (id: string) => void;
   onPress: (id: string) => void;
+  isFirst: boolean;
 }) {
   const swipeableRef = useRef<SwipeableMethods>(null);
   const isDark = useColorScheme() === "dark";
@@ -157,6 +165,7 @@ function ChatRow({
             borderBottomColor: isDark ? "#1A1354" : "rgba(0,0,0,0.06)",
             borderBottomWidth: isDark ? 0.17 : 0.8,
           },
+          isFirst && { borderBottomWidth: 0 },
         ]}
         onPress={handlePress}
       >
@@ -239,11 +248,13 @@ function AvailableContactRow({
   onAdd,
   adding,
   added,
+  isFirst,
 }: {
   item: AvailableContact;
   onAdd: (id: string) => void;
   adding: boolean;
   added: boolean;
+  isFirst: boolean;
 }) {
   const isDark = useColorScheme() === "dark";
 
@@ -255,6 +266,7 @@ function AvailableContactRow({
           borderBottomColor: isDark ? "#1A1354" : "rgba(0,0,0,0.06)",
           borderBottomWidth: isDark ? 0.17 : 0.8,
         },
+        isFirst && { borderBottomWidth: 0 },
       ]}
     >
       <View style={styles.avatarContainer}>
@@ -304,87 +316,84 @@ function AvailableContactRow({
         {adding ? (
           <ActivityIndicator size="small" color={isDark ? "#fff" : "#6C56FF"} />
         ) : added ? (
-          <>
-            <Ionicons
-              name="checkmark"
-              size={16}
-              color={isDark ? "#fff" : "#6B7280"}
-            />
-            <Text
-              style={[
-                styles.availableAddText,
-                !isDark && { color: "#6B7280" },
-              ]}
-            >
-              Added
-            </Text>
-          </>
+          <Ionicons
+            name="checkmark"
+            size={18}
+            color={isDark ? "#fff" : "#6B7280"}
+          />
         ) : (
-          <>
-            <Ionicons
-              name="person-add-outline"
-              size={16}
-              color={isDark ? "#fff" : "#6C56FF"}
-            />
-            <Text
-              style={[
-                styles.availableAddText,
-                { color: isDark ? "#fff" : "#6C56FF" },
-              ]}
-            >
-              Add
-            </Text>
-          </>
+          <Ionicons
+            name="person-add-outline"
+            size={18}
+            color={isDark ? "#fff" : "#6C56FF"}
+          />
         )}
       </TouchableOpacity>
     </View>
   );
 }
 
-function ChatsHeader({
-  search,
-  onSearchChange,
-  onAddPress,
-  showSearch,
-}: {
-  search: string;
-  onSearchChange: (text: string) => void;
-  onAddPress: () => void;
-  showSearch: boolean;
-}) {
+function ChatsHeader({ onAddPress }: { onAddPress: () => void }) {
   const isDark = useColorScheme() === "dark";
 
   return (
     <View style={styles.chatsHeader}>
       <View style={styles.chatsTitleRow}>
-        <Text
-          style={[styles.chatsTitle, { color: isDark ? "#fff" : "#1A1A2E" }]}
-        >
-          Chats
-        </Text>
+        <View style={styles.chatsHeaderLeft}>
+          <ExpoImage
+            source={isDark ? images.eveLogoDark : images.eveLogoLight}
+            style={styles.chatsLogo}
+            contentFit="contain"
+          />
+        </View>
         <TouchableOpacity
-          style={[styles.addCharacterButton]}
+          style={styles.addCharacterButton}
           activeOpacity={0.7}
           onPress={onAddPress}
         >
           <Ionicons
             name="person-add-outline"
-            size={22}
+            size={16}
             color={isDark ? "#fff" : "#6C56FF"}
           />
+          <Text
+            style={[
+              styles.addCharacterText,
+              { color: isDark ? "#fff" : "#6C56FF" },
+            ]}
+          >
+            New Characters
+          </Text>
         </TouchableOpacity>
       </View>
-      {showSearch && (
-        <CustomInput
-          value={search}
-          onChangeText={onSearchChange}
-          search
-          placeholder="Search"
-          backgroundColor={isDark ? "#1D1B31" : "#F0EEF9"}
-          borderColor={isDark ? "#262626" : "#E0DCF0"}
-          borderRadius={15}
-        />
-      )}
+    </View>
+  );
+}
+
+function ChatsSearch({
+  search,
+  onSearchChange,
+  showSearch,
+}: {
+  search: string;
+  onSearchChange: (text: string) => void;
+  showSearch: boolean;
+}) {
+  const isDark = useColorScheme() === "dark";
+
+  if (!showSearch) return null;
+
+  return (
+    <View style={styles.chatsSearch}>
+      <CustomInput
+        value={search}
+        onChangeText={onSearchChange}
+        search
+        placeholder="Search"
+        backgroundColor={isDark ? "#1D1B31" : "#F0EEF9"}
+        borderColor={isDark ? "#262626" : "#E0DCF0"}
+        borderRadius={15}
+      />
     </View>
   );
 }
@@ -449,12 +458,15 @@ export default function Index() {
     },
   });
 
-  const { data: unreadCounts = new Map<string, UnreadInfo>() } = useQuery({
-    queryKey: ["unreadCounts"],
-    queryFn: () => getUnreadCounts(),
-    refetchOnMount: true,
-    staleTime: 0,
-  });
+  const { data: unreadSummary } = useUnreadSummary();
+  const unreadCounts = useMemo((): Map<string, UnreadInfo> => {
+    if (!unreadSummary) return new Map();
+    const m = new Map<string, UnreadInfo>();
+    unreadSummary.byContact.forEach((v, contactId) => {
+      m.set(contactId, { count: v.count, lastContent: null, lastAt: null });
+    });
+    return m;
+  }, [unreadSummary]);
 
   const lastMessages = useMemo(
     () => getLastMessageByContact(),
@@ -487,16 +499,6 @@ export default function Index() {
     [lastMessages, unreadCounts],
   );
 
-  useEffect(() => {
-    let total = 0;
-    unreadCounts.forEach((info) => {
-      total += info.count;
-    });
-
-    Notifications.setBadgeCountAsync(total).catch(() => {
-      // Ignore badge errors (e.g., unsupported platform or permissions)
-    });
-  }, [unreadCounts]);
 
   const filteredContacts = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -548,7 +550,9 @@ export default function Index() {
         await contactsService.addContact(contactId);
         setAddedAvailableIds((prev) => new Set(prev).add(contactId));
         await queryClient.invalidateQueries({ queryKey: ["contacts"] });
-        await queryClient.invalidateQueries({ queryKey: ["availableContacts"] });
+        await queryClient.invalidateQueries({
+          queryKey: ["availableContacts"],
+        });
         await queryClient.invalidateQueries({ queryKey: REELS_QUERY_KEY });
         await queryClient.invalidateQueries({ queryKey: STORIES_QUERY_KEY });
       } catch (err) {
@@ -598,6 +602,7 @@ export default function Index() {
     setRefreshing(true);
     try {
       await queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      await invalidateUnreadSummary();
       await queryClient.invalidateQueries({ queryKey: REELS_QUERY_KEY });
       await queryClient.invalidateQueries({ queryKey: STORIES_QUERY_KEY });
       setSortKey((k) => k + 1);
@@ -606,9 +611,12 @@ export default function Index() {
     }
   }, [queryClient]);
 
+  const { maintenance } = useMaintenanceCheck();
+
   return (
     <Background>
       <SafeAreaView style={styles.safe}>
+        <MaintenanceModal visible={maintenance} />
         {loading ? (
           <View>
             <Reels />
@@ -618,11 +626,11 @@ export default function Index() {
         ) : (
           <>
             <View>
+              <ChatsHeader onAddPress={openAddContacts} />
               <Reels />
-              <ChatsHeader
+              <ChatsSearch
                 search={search}
                 onSearchChange={setSearch}
-                onAddPress={openAddContacts}
                 showSearch={contacts.length > 0}
               />
             </View>
@@ -633,25 +641,44 @@ export default function Index() {
                   contact: c,
                 })),
                 ...(search.trim().length > 0
-                  ? availableMatches.map((c) => ({
-                      kind: "available" as const,
-                      contact: c,
-                    }))
+                  ? [
+                      ...(availableMatches.length > 0
+                        ? [{ kind: "availableHeader" as const }]
+                        : []),
+                      ...availableMatches.map((c) => ({
+                        kind: "available" as const,
+                        contact: c,
+                      })),
+                    ]
                   : []),
               ]}
               keyExtractor={(item) =>
-                item.kind === "contact"
-                  ? `contact-${item.contact.id}`
-                  : `available-${item.contact.id}`
+                item.kind === "availableHeader"
+                  ? "available-header"
+                  : item.kind === "contact"
+                    ? `contact-${item.contact.id}`
+                    : `available-${item.contact.id}`
               }
-              renderItem={({ item }) =>
-                item.kind === "contact" ? (
+              renderItem={({ item, index }) =>
+                item.kind === "availableHeader" ? (
+                  <View style={styles.availableSectionHeader}>
+                    <Text
+                      style={[
+                        styles.availableSectionTitle,
+                        { color: isDark ? "#888" : "#6B7280" },
+                      ]}
+                    >
+                      New Characters
+                    </Text>
+                  </View>
+                ) : item.kind === "contact" ? (
                   <ChatRow
                     item={item.contact}
                     lastMessage={getDisplayLastMessage(item.contact.id)}
                     unreadCount={unreadCounts.get(item.contact.id)?.count ?? 0}
                     onDelete={deleteContact}
                     onPress={openChat}
+                    isFirst={index === 0}
                   />
                 ) : (
                   <AvailableContactRow
@@ -659,6 +686,11 @@ export default function Index() {
                     onAdd={handleAddAvailable}
                     adding={addingAvailableIds.has(item.contact.id)}
                     added={addedAvailableIds.has(item.contact.id)}
+                    isFirst={
+                      index ===
+                      filteredContacts.length +
+                        (availableMatches.length > 0 ? 1 : 0)
+                    }
                   />
                 )
               }
@@ -701,10 +733,10 @@ export default function Index() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    paddingTop: 10,
+    paddingTop: 8,
   },
   listContent: {
-    paddingBottom: 70,
+    paddingBottom: 100,
   },
   emptyContainer: {
     alignItems: "center",
@@ -734,25 +766,51 @@ const styles = StyleSheet.create({
   },
   chatsHeader: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 12,
+    paddingBottom: 10,
+    paddingLeft: 22,
+  },
+  chatsSearch: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
     paddingBottom: 12,
-    gap: 12,
+  },
+  availableSectionHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  availableSectionTitle: {
+    fontSize: 12,
+    fontFamily: "Outfit-SemiBold",
+    textTransform: "uppercase",
   },
   chatsTitleRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    minHeight: 48,
+  },
+  chatsHeaderLeft: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   chatsTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "700",
     fontFamily: "Outfit-SemiBold",
+  },
+  chatsLogo: {
+    width: 45,
+    height: 45,
   },
   addCharacterButton: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 6,
-    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
   },
@@ -843,14 +901,9 @@ const styles = StyleSheet.create({
   availableAddButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     borderRadius: 20,
-  },
-  availableAddText: {
-    fontSize: 13,
-    fontWeight: "600",
-    fontFamily: "Outfit-Medium",
   },
 });

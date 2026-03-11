@@ -1,8 +1,10 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useUnreadSummary } from "@/hooks/useUnreadSummary";
 import { Ionicons } from "@expo/vector-icons";
+import * as Notifications from "expo-notifications";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -37,6 +39,12 @@ export default function CustomTabBar({
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const { data: unreadSummary } = useUnreadSummary();
+  const totalUnread = unreadSummary?.totalUnread ?? 0;
+
+  useEffect(() => {
+    Notifications.setBadgeCountAsync(totalUnread).catch(() => {});
+  }, [totalUnread]);
 
   return (
     <View
@@ -56,8 +64,10 @@ export default function CustomTabBar({
             label: route.name,
           };
           const iconName = isFocused ? meta.active : meta.inactive;
-
-          const iconColor = isDark ? "#fff" : isFocused ? "#6C56FF" : "#6B7280";
+          const iconColor =
+            isDark ? "#fff" : isFocused ? "#6C56FF" : "#6B7280";
+          const showBadge =
+            route.name === "index" && totalUnread > 0;
 
           const onPress = () => {
             const event = navigation.emit({
@@ -83,7 +93,16 @@ export default function CustomTabBar({
                   (isDark ? styles.tabActiveDark : styles.tabActiveLight),
               ]}
             >
-              <Ionicons name={iconName} size={28} color={iconColor} />
+              <View style={styles.iconWrapper}>
+                <Ionicons name={iconName} size={28} color={iconColor} />
+                {showBadge && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText} numberOfLines={1}>
+                      {totalUnread > 99 ? "99+" : totalUnread}
+                    </Text>
+                  </View>
+                )}
+              </View>
               {isFocused && (
                 <Text
                   style={[styles.label, { color: isDark ? "#fff" : "#6C56FF" }]}
@@ -137,6 +156,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 22,
     gap: 6,
+  },
+  iconWrapper: {
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: -6,
+    right: -10,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#6C56FF",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700",
+    fontFamily: "Outfit-SemiBold",
   },
   tabActiveDark: {
     backgroundColor: "rgba(255,255,255,0.08)",

@@ -1,5 +1,5 @@
 import type { Story } from "@/services/stories";
-import VerifiedBadge from "./VerifiedBadge";
+import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React, {
   useCallback,
@@ -33,7 +33,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Image as ExpoImage } from "expo-image";
+import VerifiedBadge from "./VerifiedBadge";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 const DISMISS_THRESHOLD = 120;
@@ -251,6 +251,9 @@ export default function StoryViewer({
                     />
                     <View style={vs.center}>
                       <Text style={vs.quote}>{item.content}</Text>
+                      <Text style={vs.attribution}>
+                        — {item.contact.name} —
+                      </Text>
                     </View>
                   </Pressable>
                 );
@@ -327,6 +330,13 @@ const vs = StyleSheet.create({
     lineHeight: 34,
     fontFamily: "Outfit-Regular",
     fontStyle: "italic",
+  },
+  attribution: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 18,
+    marginTop: 16,
+    textAlign: "center",
+    fontFamily: "Outfit-Regular",
   },
   progressRow: {
     position: "absolute",

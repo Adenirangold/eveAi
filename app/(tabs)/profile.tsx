@@ -108,16 +108,16 @@ export default function Profile() {
   useEffect(() => {
     (async () => {
       try {
-        const [storedEnabled, permission] = await Promise.all([
-          getNotificationsEnabled(),
-          getPermissionStatus(),
-        ]);
-        setNotificationsEnabledState(storedEnabled && permission);
+        const permission = await getPermissionStatus();
+        // Use profile.notificationStatus from /me as source of truth when available
+        const serverEnabled =
+          profile?.notificationStatus ?? (await getNotificationsEnabled());
+        setNotificationsEnabledState(serverEnabled && permission);
       } catch {
         setNotificationsEnabledState(false);
       }
     })();
-  }, []);
+  }, [profile?.notificationStatus]);
 
   const handleSaveFullName = () => {
     setNameError("");
@@ -173,6 +173,7 @@ export default function Profile() {
 
       setNotificationsEnabledState(true);
       setIsNotificationModalVisible(false);
+      await queryClient.invalidateQueries({ queryKey: ["profile"] });
 
       Toast.show({
         type: "success",
@@ -198,6 +199,7 @@ export default function Profile() {
       await setNotificationsEnabled(false);
       setNotificationsEnabledState(false);
       setIsNotificationModalVisible(false);
+      await queryClient.invalidateQueries({ queryKey: ["profile"] });
       Toast.show({
         type: "success",
         text1: "Notifications turned off",
