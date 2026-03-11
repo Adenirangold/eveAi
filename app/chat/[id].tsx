@@ -43,6 +43,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface ExtendedMessage extends IMessage {
   bibleRefs?: string[] | null;
+  status?: "pending" | "sent" | "delivered";
 }
 
 const DRAFT_KEY_PREFIX = "chat_draft_";
@@ -72,6 +73,7 @@ function toGiftedMessages(
       text: m.content,
       createdAt: new Date(m.createdAt),
       bibleRefs: m.bibleRefs,
+      status: m.status,
       user:
         m.role === "user"
           ? { _id: 1 }
@@ -209,7 +211,44 @@ export default function ChatScreen() {
     initialData: localMessages.length > 0 ? localMessages : undefined,
     refetchInterval: isSending ? false : 3000,
     refetchIntervalInBackground: false,
-    select: (data) => toGiftedMessages(data, contact ?? null),
+    select: (data) => {
+      // Derive sent / delivered status for non-optimistic user messages
+      const withStatus: ChatMessage[] = data.map((m) => ({ ...m }));
+
+      // Find index of last user message without an explicit status (ignore optimistic 'pending')
+      let lastUserIdx = -1;
+      for (let i = 0; i < withStatus.length; i++) {
+        const m = withStatus[i];
+        if (m.role === "user" && !m.status) {
+          lastUserIdx = i;
+        }
+      }
+
+      if (lastUserIdx >= 0) {
+        const lastUser = withStatus[lastUserIdx];
+        const lastUserTime = new Date(lastUser.createdAt).getTime();
+
+        const hasResponseAfter = withStatus.some(
+          (m) =>
+            m.role === "assistant" &&
+            new Date(m.createdAt).getTime() > lastUserTime,
+        );
+
+        withStatus[lastUserIdx] = {
+          ...lastUser,
+          status: hasResponseAfter ? "delivered" : "sent",
+        };
+
+        for (let i = 0; i < lastUserIdx; i++) {
+          const m = withStatus[i];
+          if (m.role === "user" && !m.status) {
+            withStatus[i] = { ...m, status: "sent" };
+          }
+        }
+      }
+
+      return toGiftedMessages(withStatus, contact ?? null);
+    },
   });
 
   const handleViewProfile = useCallback(() => {
@@ -236,6 +275,7 @@ export default function ChatScreen() {
       content: text,
       bibleRefs: null,
       createdAt: new Date().toISOString(),
+      status: "pending",
     };
 
     queryClient.setQueryData<ChatMessage[]>(["chat", id], (old = []) => [
@@ -296,6 +336,44 @@ export default function ChatScreen() {
               },
             }}
             tickStyle={{ color: "#6C56FF" }}
+            renderTicks={() => {
+              if (!msg || msg.user?._id !== 1) return null;
+
+              if (msg.status === "pending") {
+                return (
+                  <Ionicons
+                    name="time-outline"
+                    size={14}
+                    color={isDark ? "#D1D5DB" : "#E5E7EB"}
+                    style={{ marginRight: 2, marginBottom: 2 }}
+                  />
+                );
+              }
+
+              if (msg.status === "sent") {
+                return (
+                  <Ionicons
+                    name="checkmark"
+                    size={14}
+                    color="#E5E7EB"
+                    style={{ marginRight: 2, marginBottom: 2 }}
+                  />
+                );
+              }
+
+              if (msg.status === "delivered") {
+                return (
+                  <Ionicons
+                    name="checkmark-done"
+                    size={14}
+                    color="#E5E7EB"
+                    style={{ marginRight: 2, marginBottom: 2 }}
+                  />
+                );
+              }
+
+              return null;
+            }}
           />
           {refsList.length > 0 ? (
             <View

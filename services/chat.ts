@@ -9,6 +9,7 @@ export interface ChatMessage {
   content: string;
   bibleRefs: string[] | null;
   createdAt: string;
+  status?: "pending" | "sent" | "delivered";
 }
 
 interface MessagesResponse {

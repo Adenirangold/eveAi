@@ -500,19 +500,35 @@ export default function Index() {
 
   const filteredContacts = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const filtered = q
+    const base = q
       ? contacts.filter((c) => c.name.toLowerCase().includes(q))
-      : [...contacts];
+      : contacts;
 
-    return filtered.sort((a, b) => {
+    if (base.length <= 1) return base;
+
+    return [...base].sort((a, b) => {
       const aLast = getDisplayLastMessage(a.id);
       const bLast = getDisplayLastMessage(b.id);
 
-      const aTime = aLast?.createdAt || a.addedAt;
-      const bTime = bLast?.createdAt || b.addedAt;
-      return new Date(bTime).getTime() - new Date(aTime).getTime();
+      const aUnread = unreadCounts.get(a.id);
+      const bUnread = unreadCounts.get(b.id);
+
+      // Last activity = max(last message time, unread lastAt, addedAt)
+      const aTime = Math.max(
+        aLast ? new Date(aLast.createdAt).getTime() : 0,
+        aUnread?.lastAt ? new Date(aUnread.lastAt).getTime() : 0,
+        new Date(a.addedAt).getTime(),
+      );
+
+      const bTime = Math.max(
+        bLast ? new Date(bLast.createdAt).getTime() : 0,
+        bUnread?.lastAt ? new Date(bUnread.lastAt).getTime() : 0,
+        new Date(b.addedAt).getTime(),
+      );
+
+      return bTime - aTime;
     });
-  }, [contacts, search, getDisplayLastMessage]);
+  }, [contacts, search, getDisplayLastMessage, unreadCounts]);
 
   const availableMatches = useMemo(() => {
     const q = search.trim().toLowerCase();

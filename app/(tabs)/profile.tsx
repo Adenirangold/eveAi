@@ -360,11 +360,6 @@ export default function Profile() {
                 trailing={
                   <View
                     className="flex-row items-center gap-1.5 rounded-full px-3 py-1"
-                    style={{
-                      backgroundColor: profile?.emailVerified
-                        ? "rgba(34,197,94,0.12)"
-                        : "rgba(239,68,68,0.12)",
-                    }}
                   >
                     <View
                       className="w-2 h-2 rounded-full"
@@ -375,10 +370,8 @@ export default function Profile() {
                       }}
                     />
                     <Text
-                      className="font-OutfitMedium text-xs"
-                      style={{
-                        color: profile?.emailVerified ? "#22C55E" : "#EF4444",
-                      }}
+                      className="font-OutfitMedium text-sm"
+                      style={{ color: valueColor }}
                     >
                       {profile?.emailVerified ? "Verified" : "Not Verified"}
                     </Text>
@@ -426,7 +419,7 @@ export default function Profile() {
                 </Text>
                 <Text
                   className="font-OutfitMedium text-sm mr-1"
-                  style={{ color: notificationsEnabled ? "#22C55E" : subtextColor }}
+                  style={{ color: subtextColor }}
                 >
                   {notificationsEnabled ? "On" : "Off"}
                 </Text>
