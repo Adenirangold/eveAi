@@ -1,4 +1,5 @@
 import type { Story } from "@/services/stories";
+import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React, {
@@ -12,7 +13,10 @@ import {
   Dimensions,
   FlatList,
   Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -75,27 +79,48 @@ export default function StoryViewer({
     onClose();
   }, [onClose]);
 
-  const scrollNext = useCallback(() => {
-    const next = indexRef.current + 1;
-    if (next >= stories.length) {
-      onClose();
-    } else {
-      flatListRef.current?.scrollToIndex({ index: next, animated: true });
+  const goToNextStory = useCallback(() => {
+    const current = indexRef.current;
+    const atLast = current >= stories.length - 1;
+    if (atLast) {
+      dismiss();
+      return;
     }
-  }, [stories.length, onClose]);
+
+    const next = current + 1;
+    indexRef.current = next;
+    setCurrentIndex(next);
+    flatListRef.current?.scrollToIndex({
+      index: next,
+      animated: true,
+    });
+  }, [stories.length, dismiss]);
 
   // ── Progress timer ──────────────────────────────────
-  const startProgress = useCallback(() => {
-    cancelAnimation(progressValue);
-    progressValue.value = 0;
-    progressValue.value = withTiming(
-      1,
-      { duration: STORY_DURATION, easing: Easing.linear },
-      (finished) => {
-        if (finished) runOnJS(scrollNext)();
-      },
-    );
-  }, [progressValue, scrollNext]);
+  const startProgress = useCallback(
+    (from?: number) => {
+      cancelAnimation(progressValue);
+      const start = typeof from === "number" ? from : 0;
+      const remaining = (1 - start) * STORY_DURATION;
+      progressValue.value = start;
+      progressValue.value = withTiming(
+        1,
+        { duration: remaining, easing: Easing.linear },
+        (finished) => {
+          "worklet";
+          if (!finished) return;
+          runOnJS(goToNextStory)();
+        },
+      );
+    },
+    [progressValue, goToNextStory],
+  );
+
+  const resumeProgress = useCallback(() => {
+    const current = progressValue.value;
+    if (current >= 1) return;
+    startProgress(current);
+  }, [progressValue, startProgress]);
 
   useLayoutEffect(() => {
     if (visible) {
@@ -173,31 +198,40 @@ export default function StoryViewer({
     viewAreaCoveragePercentThreshold: 50,
   }).current;
 
-  // ── Tap navigation ─────────────────────────────────
-  const handleTap = useCallback(
-    (locationX: number) => {
-      const target =
-        locationX < SCREEN_W * 0.3
-          ? indexRef.current - 1
-          : indexRef.current + 1;
+  // ── Horizontal swipe on last story should dismiss ────
+  const handleHorizontalRelease = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const velocityX = e.nativeEvent.velocity?.x ?? 0;
 
-      if (target < 0) return;
-      if (target >= stories.length) {
-        onClose();
-        return;
+      if (indexRef.current === stories.length - 1 && velocityX < -0.5) {
+        translateY.value = withTiming(SCREEN_H, { duration: 250 });
+        backdropOpacity.value = withTiming(0, { duration: 250 }, () => {
+          runOnJS(dismiss)();
+        });
       }
-
-      flatListRef.current?.scrollToIndex({ index: target, animated: true });
-      indexRef.current = target;
-      setCurrentIndex(target);
     },
-    [stories.length, onClose],
+    [stories.length, translateY, backdropOpacity, dismiss],
   );
 
   const handleClose = useCallback(() => {
     cancelAnimation(progressValue);
     onClose();
   }, [onClose, progressValue]);
+
+  const handleShare = useCallback(async () => {
+    const currentStory = stories[indexRef.current] ?? stories[0];
+    if (!currentStory) return;
+
+    const cleanText = currentStory.content?.replace(/^['"]+|['"]+$/g, "") ?? "";
+    const message = `${cleanText}\n\n@binahstudio`;
+
+    cancelAnimation(progressValue);
+    try {
+      await Share.share({ message });
+    } finally {
+      resumeProgress();
+    }
+  }, [stories, progressValue, resumeProgress]);
 
   if (!visible || stories.length === 0) return null;
 
@@ -230,6 +264,7 @@ export default function StoryViewer({
               })}
               onViewableItemsChanged={onViewable}
               viewabilityConfig={viewCfg}
+              onScrollEndDrag={handleHorizontalRelease}
               renderItem={({ item }) => {
                 const bg =
                   item.backgroundColor.length >= 2
@@ -241,7 +276,13 @@ export default function StoryViewer({
                 return (
                   <Pressable
                     style={vs.page}
-                    onPress={(e) => handleTap(e.nativeEvent.locationX)}
+                    delayLongPress={250}
+                    onLongPress={() => {
+                      cancelAnimation(progressValue);
+                    }}
+                    onPressOut={() => {
+                      resumeProgress();
+                    }}
                   >
                     <LinearGradient
                       colors={bg}
@@ -250,7 +291,9 @@ export default function StoryViewer({
                       end={{ x: 0.5, y: 1 }}
                     />
                     <View style={vs.center}>
-                      <Text style={vs.quote}>{item.content}</Text>
+                      <Text style={vs.quote}>
+                        {item.content?.replace(/^['"]+|['"]+$/g, "")}
+                      </Text>
                       <Text style={vs.attribution}>
                         — {item.contact.name} —
                       </Text>
@@ -279,12 +322,22 @@ export default function StoryViewer({
                 {story.contact.isPremium && <VerifiedBadge size={14} />}
                 <Text style={vs.hTime}>{timeAgo(story.createdAt)}</Text>
               </View>
-              <TouchableOpacity
-                onPress={handleClose}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <Text style={vs.x}>✕</Text>
-              </TouchableOpacity>
+
+              <View style={vs.headerActions}>
+                <TouchableOpacity
+                  onPress={handleShare}
+                  hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+                >
+                  <Ionicons name="share-outline" size={24} color="#fff" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleClose}
+                  hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+                >
+                  <Ionicons name="close" size={30} color="#fff" />
+                </TouchableOpacity>
+              </View>
             </View>
           </Animated.View>
         </GestureDetector>
@@ -363,7 +416,13 @@ const vs = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
   user: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -385,8 +444,26 @@ const vs = StyleSheet.create({
   },
   x: {
     color: "#fff",
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "600",
-    padding: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 8,
+  },
+  tooltip: {
+    position: "absolute",
+    right: 32,
+    top: 30,
+    backgroundColor: "rgba(0,0,0,0.9)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  tooltipText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

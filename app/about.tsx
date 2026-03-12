@@ -8,7 +8,14 @@ import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import * as WebBrowser from "expo-web-browser";
 import React from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  Image,
+  Linking,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const APP_VERSION = Constants.expoConfig?.version ?? "1.0.0";
@@ -21,6 +28,10 @@ export default function About() {
 
   const privacyUrl = resources?.privacyUrl ?? "https://binahstudio.com";
   const policyUrl = resources?.policyUrl ?? "https://binahstudio.com";
+
+  const instagramUrl = resources?.instagram ?? "https://www.instagram.com/";
+  const twitterUrl = resources?.twitter ?? "https://twitter.com/";
+  const linkedinUrl = resources?.linkedin ?? "https://linkedin.com/company/";
 
   const cardBg = isDark ? "#1F1D35" : "#FFFFFF";
   const cardBorder = isDark
@@ -48,31 +59,19 @@ export default function About() {
             style={{ alignItems: "center", paddingTop: 8, paddingBottom: 32 }}
           >
             <Image
-              source={images.logo}
+              source={isDark ? images.eveLogoDark : images.eveLogoLight}
               style={{
-                width: 96,
-                height: 96,
-                borderRadius: 28,
-                marginBottom: 20,
+                width: 80,
+                height: 50,
               }}
               resizeMode="contain"
             />
 
             <Text
               style={{
-                fontFamily: "Outfit-SemiBold",
-                fontSize: 26,
-                color: valueColor,
-              }}
-            >
-              Eve
-            </Text>
-            <Text
-              style={{
                 fontFamily: "Outfit-Regular",
                 fontSize: 14,
                 color: subtextColor,
-                marginTop: 4,
               }}
             >
               Version {displayVersion}
@@ -143,6 +142,50 @@ export default function About() {
                 onPress={() =>
                   WebBrowser.openBrowserAsync("https://binahstudio.com")
                 }
+                labelColor={labelColor}
+                chevronColor={chevronColor}
+              />
+            </View>
+
+            {/* Socials */}
+            <Text
+              style={{
+                fontFamily: "Outfit-SemiBold",
+                fontSize: 12,
+                textTransform: "uppercase",
+                letterSpacing: 1,
+                color: labelColor,
+                marginTop: 12,
+              }}
+            >
+              Socials
+            </Text>
+            <View
+              style={[
+                { backgroundColor: cardBg, borderRadius: 16 },
+                cardBorder,
+              ]}
+            >
+              <LinkRow
+                icon="logo-instagram"
+                label="Instagram"
+                onPress={() => Linking.openURL(instagramUrl)}
+                labelColor={labelColor}
+                chevronColor={chevronColor}
+              />
+              <Separator color={separatorColor} />
+              <LinkRow
+                icon="logo-twitter"
+                label="Twitter"
+                onPress={() => Linking.openURL(twitterUrl)}
+                labelColor={labelColor}
+                chevronColor={chevronColor}
+              />
+              <Separator color={separatorColor} />
+              <LinkRow
+                icon="logo-linkedin"
+                label="LinkedIn"
+                onPress={() => Linking.openURL(linkedinUrl)}
                 labelColor={labelColor}
                 chevronColor={chevronColor}
               />

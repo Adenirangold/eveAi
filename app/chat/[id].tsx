@@ -3,14 +3,16 @@ import VerifiedBadge from "@/components/VerifiedBadge";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { invalidateUnreadSummary } from "@/hooks/useUnreadSummary";
 import { setActiveChatId } from "@/lib/active-chat";
-import { cleanRef, formatRefLabel } from "@/lib/bible";
+import { formatRefLabel } from "@/lib/bible";
 import { ChatMessage, chatService } from "@/services/chat";
-import { unreadService } from "@/services/unread";
 import { contactsService, type Contact } from "@/services/contacts";
+import { unreadService } from "@/services/unread";
 import { useAuthStore } from "@/store/auth-store";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import * as Clipboard from "expo-clipboard";
+import * as Haptics from "expo-haptics";
 import { Image as ExpoImage } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, {
@@ -40,6 +42,7 @@ import {
   type BubbleProps,
   type IMessage,
 } from "react-native-gifted-chat";
+import Popover from "react-native-popover-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface ExtendedMessage extends IMessage {
@@ -153,6 +156,12 @@ export default function ChatScreen() {
   const [isSending, setIsSending] = useState(false);
   const [inputText, setInputText] = useState("");
   const [bibleModalRefs, setBibleModalRefs] = useState<string[] | null>(null);
+  const [copiedVisible, setCopiedVisible] = useState(false);
+  const [activeMessageMenuId, setActiveMessageMenuId] = useState<
+    string | number | null
+  >(null);
+  const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const copiedSlideAnim = useRef(new Animated.Value(20)).current;
   const inputRef = useRef<TextInput>(null);
   const flatListRef = useRef<RNFlatList>(null);
 
@@ -168,6 +177,26 @@ export default function ChatScreen() {
       if (draft) setInputText(draft);
     });
   }, [id]);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+        copiedTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (copiedVisible) {
+      copiedSlideAnim.setValue(20);
+      Animated.timing(copiedSlideAnim, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [copiedVisible, copiedSlideAnim]);
 
   useEffect(() => {
     if (!id) return;
@@ -249,6 +278,11 @@ export default function ChatScreen() {
     },
   });
 
+  useEffect(() => {
+    if (!id || messages.length === 0) return;
+    unreadService.markRead(id).finally(invalidateUnreadSummary);
+  }, [id, messages.length]);
+
   const handleViewProfile = useCallback(() => {
     if (id) router.push(`/contact/${id}`);
     setMenuVisible(false);
@@ -315,64 +349,135 @@ export default function ChatScreen() {
 
       const refsList = msg?.bibleRefs ?? [];
 
+      const handleCopy = () => {
+        if (!msg?.text) return;
+        Clipboard.setStringAsync(msg.text);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        setCopiedVisible(true);
+        if (copiedTimeoutRef.current) {
+          clearTimeout(copiedTimeoutRef.current);
+        }
+        copiedTimeoutRef.current = setTimeout(() => {
+          setCopiedVisible(false);
+          copiedTimeoutRef.current = null;
+        }, 1400);
+      };
+
       return (
         <View>
-          <Bubble
-            {...props}
-            wrapperStyle={{
-              right: styles.bubbleRight,
-              left: {
-                ...styles.bubbleLeft,
-                backgroundColor: isDark ? "#1C1C2E" : "#EDEBF6",
-              },
-            }}
-            textStyle={{
-              right: styles.bubbleTextRight as TextStyle,
-              left: {
-                ...(styles.bubbleTextLeft as TextStyle),
-                color: isDark ? "#E8E8E8" : "#1A1A2E",
-              },
-            }}
-            tickStyle={{ color: "#6C56FF" }}
-            renderTicks={() => {
-              if (!msg || msg.user?._id !== 1) return null;
+          <View style={[styles.bubbleRow, { flexDirection: "row" }]}>
+            <View style={styles.bubbleWithMenu}>
+              <Bubble
+                {...props}
+                wrapperStyle={{
+                  right: styles.bubbleRight,
+                  left: {
+                    ...styles.bubbleLeft,
+                    backgroundColor: isDark ? "#1C1C2E" : "#EDEBF6",
+                  },
+                }}
+                textStyle={{
+                  right: styles.bubbleTextRight as TextStyle,
+                  left: {
+                    ...(styles.bubbleTextLeft as TextStyle),
+                    color: isDark ? "#E8E8E8" : "#1A1A2E",
+                  },
+                }}
+                tickStyle={{ color: "#6C56FF" }}
+                renderTicks={() => {
+                  if (!msg || msg.user?._id !== 1) return null;
 
-              if (msg.status === "pending") {
-                return (
-                  <Ionicons
-                    name="time-outline"
-                    size={14}
-                    color={isDark ? "#D1D5DB" : "#E5E7EB"}
-                    style={{ marginRight: 2, marginBottom: 2 }}
-                  />
-                );
-              }
+                  if (msg.status === "pending") {
+                    return (
+                      <Ionicons
+                        name="time-outline"
+                        size={14}
+                        color={isDark ? "#D1D5DB" : "#E5E7EB"}
+                        style={{ marginRight: 2, marginBottom: 2 }}
+                      />
+                    );
+                  }
 
-              if (msg.status === "sent") {
-                return (
-                  <Ionicons
-                    name="checkmark"
-                    size={14}
-                    color="#E5E7EB"
-                    style={{ marginRight: 2, marginBottom: 2 }}
-                  />
-                );
-              }
+                  if (msg.status === "sent") {
+                    return (
+                      <Ionicons
+                        name="checkmark"
+                        size={14}
+                        color="#E5E7EB"
+                        style={{ marginRight: 2, marginBottom: 2 }}
+                      />
+                    );
+                  }
 
-              if (msg.status === "delivered") {
-                return (
-                  <Ionicons
-                    name="checkmark-done"
-                    size={14}
-                    color="#E5E7EB"
-                    style={{ marginRight: 2, marginBottom: 2 }}
-                  />
-                );
-              }
+                  if (msg.status === "delivered") {
+                    return (
+                      <Ionicons
+                        name="checkmark-done"
+                        size={14}
+                        color="#E5E7EB"
+                        style={{ marginRight: 2, marginBottom: 2 }}
+                      />
+                    );
+                  }
 
-              return null;
-            }}
-          />
+                  return null;
+                }}
+              />
+              {isLeft && msg?.text ? (
+                <Popover
+                  isVisible={activeMessageMenuId === msg._id}
+                  onRequestClose={() => setActiveMessageMenuId(null)}
+                  popoverStyle={[
+                    styles.messageMenu,
+                    {
+                      backgroundColor: isDark ? "#64686e" : "#F9FAFB",
+                    },
+                  ]}
+                  from={
+                    <TouchableOpacity
+                      onPress={() =>
+                        setActiveMessageMenuId((current) =>
+                          current === msg._id ? null : msg._id,
+                        )
+                      }
+                      activeOpacity={0.7}
+                      hitSlop={6}
+                      style={styles.messageMenuTrigger}
+                    >
+                      <Ionicons
+                        name="ellipsis-vertical"
+                        size={18}
+                        color={isDark ? "#E8E8E8" : "#6B7280"}
+                      />
+                    </TouchableOpacity>
+                  }
+                >
+                  <TouchableOpacity
+                    style={styles.messageMenuItem}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      handleCopy();
+                      setActiveMessageMenuId(null);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.messageMenuText,
+                        { color: isDark ? "#E5E7EB" : "#111827" },
+                      ]}
+                    >
+                      Copy
+                    </Text>
+                    <Ionicons
+                      name="copy-outline"
+                      size={18}
+                      color={isDark ? "#E5E7EB" : "#111827"}
+                    />
+                  </TouchableOpacity>
+                </Popover>
+              ) : null}
+            </View>
+          </View>
           {refsList.length > 0 ? (
             <View
               style={[
@@ -414,7 +519,7 @@ export default function ChatScreen() {
         </View>
       );
     },
-    [isDark],
+    [isDark, activeMessageMenuId],
   );
 
   const renderAvatar = useCallback(
@@ -590,7 +695,7 @@ export default function ChatScreen() {
             style={styles.menuButton}
             activeOpacity={0.7}
           >
-            <Ionicons name="ellipsis-vertical" size={20} color={iconColor} />
+            <Ionicons name="ellipsis-horizontal" size={20} color={iconColor} />
           </TouchableOpacity>
 
           {menuVisible && (
@@ -681,6 +786,23 @@ export default function ChatScreen() {
         onClose={() => setBibleModalRefs(null)}
         refs={bibleModalRefs ?? []}
       />
+      {copiedVisible && (
+        <View style={styles.copiedOverlay}>
+          <Animated.View
+            style={{ transform: [{ translateY: copiedSlideAnim }] }}
+          >
+            <View
+              style={[
+                styles.copiedToast,
+                { backgroundColor: isDark ? "#111827" : "#111827" },
+              ]}
+            >
+              <Ionicons name="checkmark-circle" size={18} color="#22C55E" />
+              <Text style={styles.copiedText}>Message copied</Text>
+            </View>
+          </Animated.View>
+        </View>
+      )}
     </View>
   );
 }
@@ -688,6 +810,7 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
+    position: "relative",
   },
   keyboardAvoid: {
     flex: 1,
@@ -862,6 +985,46 @@ const styles = StyleSheet.create({
     backgroundColor: "#6C56FF",
     marginHorizontal: 3,
   },
+  bubbleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    maxWidth: "98%",
+    alignSelf: "flex-start",
+  },
+  bubbleWithMenu: {
+    position: "relative",
+    maxWidth: "98%",
+  },
+  messageMenuTrigger: {
+    position: "absolute",
+    right: -30,
+    bottom: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+  },
+  messageMenu: {
+    borderRadius: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    backgroundColor: "#111827",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  messageMenuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    gap: 6,
+  },
+  messageMenuText: {
+    fontSize: 13,
+    fontFamily: "Outfit-Medium",
+  },
   refsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -888,6 +1051,27 @@ const styles = StyleSheet.create({
   refChipText: {
     fontSize: 12,
     fontWeight: "600",
+    fontFamily: "Outfit-Medium",
+  },
+  copiedOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 140,
+    alignItems: "center",
+    zIndex: 50,
+  },
+  copiedToast: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    gap: 8,
+  },
+  copiedText: {
+    color: "#F9FAFB",
+    fontSize: 14,
     fontFamily: "Outfit-Medium",
   },
 });

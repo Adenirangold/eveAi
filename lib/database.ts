@@ -303,6 +303,24 @@ export function upsertLocalMessages(messages: ChatMessage[]): void {
   });
 }
 
+export function upsertNotificationMessage(
+  contactId: string,
+  content: string,
+  createdAt: string,
+): void {
+  const db = getDb();
+  if (!db) return;
+
+  const id = `notif-${contactId}-${createdAt}`;
+
+  db.runSync(
+    `INSERT OR REPLACE INTO messages
+      (id, userId, contactId, role, content, bibleRefs, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [id, "", contactId, "assistant", content, null, createdAt],
+  );
+}
+
 // ── Last message per contact ─────────────────────────
 
 export interface LastMessageInfo {

@@ -138,6 +138,9 @@ export function useResources() {
     select: (data) => ({
       policyUrl: data.policyUrl || FALLBACK_URL,
       privacyUrl: data.privacyUrl || FALLBACK_URL,
+      instagram: data.instagram || "https://www.instagram.com/binahstudio",
+      twitter: data.twitter || "https://twitter.com/eveaiapp",
+      linkedin: data.linkedin || "https://linkedin.com/company/eveaiapp",
     }),
   });
 }

@@ -2,9 +2,9 @@ import Background from "@/components/BackGround";
 import CustomSwitch from "@/components/CustomSwitch";
 import FormError from "@/components/FormError";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
+import ProfileSkeleton from "@/components/skeleton/ProfileSkeleton";
 import icons from "@/constants/icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import ProfileSkeleton from "@/components/skeleton/ProfileSkeleton";
 import {
   useLogout,
   useProfile,
@@ -14,7 +14,6 @@ import {
   useUpdateUsername,
 } from "@/hooks/useAuth";
 import { useThemeStore } from "@/store/theme-store";
-import { fullNameSchema } from "@/validation/schema";
 import {
   clearPushToken,
   getNotificationsEnabled,
@@ -23,6 +22,7 @@ import {
   removePushTokenFromServer,
   setNotificationsEnabled,
 } from "@/utils/notification";
+import { fullNameSchema } from "@/validation/schema";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
@@ -40,8 +40,8 @@ import {
   TextInput,
   View,
 } from "react-native";
-import Toast from "react-native-toast-message";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 function getInitials(name?: string | null): string {
   if (!name) return "?";
@@ -178,7 +178,8 @@ export default function Profile() {
       Toast.show({
         type: "success",
         text1: "Notifications enabled",
-        text2: "You can now receive notifications from your favourite Bible character.",
+        text2:
+          "You can now receive notifications from your favourite Bible character.",
       });
     } catch {
       Toast.show({
@@ -354,33 +355,33 @@ export default function Profile() {
                 <Ionicons name="pencil" size={14} color="#6C56FF" />
               </Pressable>
               <Separator color={separatorColor} />
-              <InfoRow
-                icon="shield-checkmark-outline"
-                labelColor={labelColor}
-                valueColor={valueColor}
-                label="Account Status"
-                trailing={
-                  <View
-                    className="flex-row items-center gap-1.5 rounded-full px-3 py-1"
-                  >
-                    <View
-                      className="w-2 h-2 rounded-full"
-                      style={{
-                        backgroundColor: profile?.emailVerified
-                          ? "#22C55E"
-                          : "#EF4444",
-                      }}
-                    />
-                    <Text
-                      className="font-OutfitMedium text-sm"
-                      style={{ color: valueColor }}
-                    >
-                      {profile?.emailVerified ? "Verified" : "Not Verified"}
-                    </Text>
-                  </View>
-                }
-              />
-              <Separator color={separatorColor} />
+              {!profile?.emailVerified && (
+                <>
+                  <InfoRow
+                    icon="shield-checkmark-outline"
+                    labelColor={labelColor}
+                    valueColor={valueColor}
+                    label="Account Status"
+                    trailing={
+                      <View className="flex-row items-center gap-1.5 rounded-full px-3 py-1">
+                        <View
+                          className="w-2 h-2 rounded-full"
+                          style={{
+                            backgroundColor: "#EF4444",
+                          }}
+                        />
+                        <Text
+                          className="font-OutfitMedium text-sm"
+                          style={{ color: valueColor }}
+                        >
+                          Not Verified
+                        </Text>
+                      </View>
+                    }
+                  />
+                  <Separator color={separatorColor} />
+                </>
+              )}
               <InfoRow
                 icon="calendar-outline"
                 label="Member Since"
