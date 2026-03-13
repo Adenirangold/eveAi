@@ -129,6 +129,9 @@ export function useLogout() {
 }
 
 const FALLBACK_URL = "https://binahstudio.com";
+const FALLBACK_INSTAGRAM_URL = "https://www.instagram.com/binahstudio";
+const FALLBACK_TWITTER_URL = "https://x.com/binahstudio";
+const FALLBACK_LINKEDIN_URL = "https://www.linkedin.com/company/binahstudio";
 
 export function useResources() {
   return useQuery({
@@ -136,11 +139,11 @@ export function useResources() {
     queryFn: authService.getResources,
     staleTime: 1000 * 60 * 60,
     select: (data) => ({
-      policyUrl: data.policyUrl || FALLBACK_URL,
-      privacyUrl: data.privacyUrl || FALLBACK_URL,
-      instagram: data.instagram || "https://www.instagram.com/binahstudio",
-      twitter: data.twitter || "https://twitter.com/eveaiapp",
-      linkedin: data.linkedin || "https://linkedin.com/company/eveaiapp",
+      policyUrl: data.policyUrl ?? FALLBACK_URL,
+      privacyUrl: data.privacyUrl ?? FALLBACK_URL,
+      instagram: data.instagram ?? FALLBACK_INSTAGRAM_URL,
+      twitter: data.twitter ?? FALLBACK_TWITTER_URL,
+      linkedin: data.linkedin ?? FALLBACK_LINKEDIN_URL,
     }),
   });
 }

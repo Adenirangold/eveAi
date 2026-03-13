@@ -1,6 +1,8 @@
 import api from "@/lib/axios";
 import { getLocalMessages, upsertLocalMessages } from "@/lib/database";
 
+export type ChatStatus = "pending" | "sent" | "delivered" | "failed";
+
 export interface ChatMessage {
   id: string;
   userId: string;
@@ -9,7 +11,7 @@ export interface ChatMessage {
   content: string;
   bibleRefs: string[] | null;
   createdAt: string;
-  status?: "pending" | "sent" | "delivered";
+  status?: ChatStatus;
 }
 
 interface MessagesResponse {

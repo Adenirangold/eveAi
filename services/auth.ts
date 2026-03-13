@@ -46,6 +46,9 @@ interface MessageData {
 interface ResourcesData {
   policyUrl: string | null;
   privacyUrl: string | null;
+  instagram: string | null;
+  twitter: string | null;
+  linkedin: string | null;
 }
 
 export const authService = {

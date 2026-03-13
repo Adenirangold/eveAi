@@ -11,6 +11,8 @@ interface UnreadSummaryResponse {
       contactId: string;
       count: number;
       messageIds: string[];
+      lastMessage: string | null;
+      lastMessageTime: string | null;
     }>;
   };
 }
@@ -24,7 +26,14 @@ interface MarkReadResponse {
 
 export interface UnreadSummary {
   totalUnread: number;
-  byContact: Map<string, { count: number }>;
+  byContact: Map<
+    string,
+    {
+      count: number;
+      lastMessage: string | null;
+      lastMessageTime: string | null;
+    }
+  >;
 }
 
 // ── API calls ───────────────────────────────────────────────────────
@@ -38,9 +47,16 @@ export const unreadService = {
       return { totalUnread: 0, byContact: new Map() };
     }
     const d = data.data;
-    const byContact = new Map<string, { count: number }>();
+    const byContact = new Map<
+      string,
+      { count: number; lastMessage: string | null; lastMessageTime: string | null }
+    >();
     for (const c of d.byContact ?? []) {
-      byContact.set(c.contactId, { count: c.count });
+      byContact.set(c.contactId, {
+        count: c.count,
+        lastMessage: c.lastMessage ?? null,
+        lastMessageTime: c.lastMessageTime ?? null,
+      });
     }
     return {
       totalUnread: d.count ?? 0,

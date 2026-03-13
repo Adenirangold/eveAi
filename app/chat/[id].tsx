@@ -10,6 +10,7 @@ import { unreadService } from "@/services/unread";
 import { useAuthStore } from "@/store/auth-store";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import NetInfo from "@react-native-community/netinfo";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
@@ -44,10 +45,13 @@ import {
 } from "react-native-gifted-chat";
 import Popover from "react-native-popover-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { getFakePresence } from "@/lib/presence";
+
+type MessageStatus = "pending" | "sent" | "delivered" | "failed";
 
 interface ExtendedMessage extends IMessage {
   bibleRefs?: string[] | null;
-  status?: "pending" | "sent" | "delivered";
+  status?: MessageStatus;
 }
 
 const DRAFT_KEY_PREFIX = "chat_draft_";
@@ -164,6 +168,9 @@ export default function ChatScreen() {
   const copiedSlideAnim = useRef(new Animated.Value(20)).current;
   const inputRef = useRef<TextInput>(null);
   const flatListRef = useRef<RNFlatList>(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const retryCountsRef = useRef<Map<string, number>>(new Map());
+  const wasOnlineRef = useRef<boolean | null>(null);
 
   const scrollToEnd = useCallback(() => {
     setTimeout(() => {
@@ -177,6 +184,82 @@ export default function ChatScreen() {
       if (draft) setInputText(draft);
     });
   }, [id]);
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      const online = !!state.isConnected && !!state.isInternetReachable;
+      setIsOnline(online);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // When network comes back, retry pending (clock) messages up to 2 times.
+  useEffect(() => {
+    if (!id) {
+      wasOnlineRef.current = isOnline;
+      return;
+    }
+
+    // Only act on transitions from offline -> online.
+    if (isOnline && wasOnlineRef.current === false) {
+      const current =
+        queryClient.getQueryData<ChatMessage[]>(["chat", id]) ?? [];
+      const pending = current.filter(
+        (m) => m.role === "user" && m.status === "pending",
+      );
+
+      pending.forEach((m) => {
+        const attempts = retryCountsRef.current.get(m.id) ?? 0;
+        if (attempts >= 2) {
+          // Mark as failed (red info) after max retries.
+          queryClient.setQueryData<ChatMessage[]>(["chat", id], (old = []) =>
+            old.map((msg) =>
+              msg.id === m.id
+                ? { ...msg, status: "failed" as MessageStatus }
+                : msg,
+            ),
+          );
+          return;
+        }
+
+        retryCountsRef.current.set(m.id, attempts + 1);
+
+        chatService
+          .sendMessage(id, m.content)
+          .then(({ userMessage, assistantMessage }) => {
+            const deliveredUserMessage: ChatMessage = {
+              ...userMessage,
+              status: "delivered",
+            };
+            queryClient.setQueryData<ChatMessage[]>(
+              ["chat", id],
+              (old = []) => {
+                const withoutOld = old.filter((msg) => msg.id !== m.id);
+                return [...withoutOld, deliveredUserMessage, assistantMessage];
+              },
+            );
+          })
+          .catch(() => {
+            const currentAttempts = retryCountsRef.current.get(m.id) ?? 0;
+            if (currentAttempts >= 2) {
+              queryClient.setQueryData<ChatMessage[]>(
+                ["chat", id],
+                (old = []) =>
+                  old.map((msg) =>
+                    msg.id === m.id
+                      ? { ...msg, status: "failed" as MessageStatus }
+                      : msg,
+                  ),
+              );
+            }
+          });
+      });
+    }
+
+    wasOnlineRef.current = isOnline;
+  }, [id, isOnline, queryClient]);
 
   useEffect(() => {
     return () => {
@@ -294,7 +377,6 @@ export default function ChatScreen() {
 
     setInputText("");
     if (id) AsyncStorage.removeItem(getDraftKey(id));
-    setIsSending(true);
 
     await queryClient.cancelQueries({ queryKey: ["chat", id] });
 
@@ -307,7 +389,9 @@ export default function ChatScreen() {
       content: text,
       bibleRefs: null,
       createdAt: new Date().toISOString(),
-      status: "pending",
+      // If we're online, show a single tick (sent).
+      // If we're offline, mark as pending so we only ever show the clock for clearly failed sends.
+      status: (isOnline ? "sent" : "pending") as MessageStatus,
     };
 
     queryClient.setQueryData<ChatMessage[]>(["chat", id], (old = []) => [
@@ -316,23 +400,43 @@ export default function ChatScreen() {
     ]);
     scrollToEnd();
 
+    // If we're offline, don't try to send now – leave it as a pending clock and don't show typing.
+    if (!isOnline) {
+      return;
+    }
+
+    // Start typing indicator 1s after sending
+    const typingTimeout = setTimeout(() => {
+      setIsSending(true);
+    }, 1000);
+
     try {
       const { userMessage, assistantMessage } = await chatService.sendMessage(
         id,
         text,
       );
 
+      // When the assistant reply is ready, mark the user message as delivered (double tick)
+      const deliveredUserMessage: ChatMessage = {
+        ...userMessage,
+        status: "delivered",
+      };
+
       queryClient.setQueryData<ChatMessage[]>(["chat", id], (old = []) => {
         const withoutOptimistic = old.filter((m) => m.id !== tempId);
-        return [...withoutOptimistic, userMessage, assistantMessage];
+        return [...withoutOptimistic, deliveredUserMessage, assistantMessage];
       });
       scrollToEnd();
+
+      // Stop typing once the assistant message is ready
+      clearTimeout(typingTimeout);
+      setIsSending(false);
     } catch {
-      queryClient.invalidateQueries({ queryKey: ["chat", id] });
-    } finally {
+      clearTimeout(typingTimeout);
+      // On failure while online, keep the last known status so the UI doesn't downgrade.
       setIsSending(false);
     }
-  }, [id, inputText, queryClient, scrollToEnd]);
+  }, [id, inputText, isOnline, queryClient, scrollToEnd]);
 
   const onGiftedSend = useCallback(
     (newMessages: IMessage[] = []) => {
@@ -415,6 +519,17 @@ export default function ChatScreen() {
                         name="checkmark-done"
                         size={14}
                         color="#E5E7EB"
+                        style={{ marginRight: 2, marginBottom: 2 }}
+                      />
+                    );
+                  }
+
+                  if (msg.status === "failed") {
+                    return (
+                      <Ionicons
+                        name="information-circle-outline"
+                        size={14}
+                        color="#F87171"
                         style={{ marginRight: 2, marginBottom: 2 }}
                       />
                     );
@@ -683,7 +798,72 @@ export default function ChatScreen() {
                 {contact.isPremium && <VerifiedBadge size={16} />}
               </View>
               <Text style={styles.headerStatus}>
-                {isSending ? "Typing..." : "Online"}
+                {(() => {
+                  if (isSending) {
+                    return "Typing...";
+                  }
+
+                  const now = new Date();
+
+                  // If there has been very recent conversation activity
+                  // (either from the assistant or the user), treat the
+                  // contact as definitely online regardless of the
+                  // background fake schedule.
+                  const lastAssistantMessage = messages.find(
+                    (m) => m.user?._id === 2,
+                  );
+
+                  const lastUserMessage = messages.find(
+                    (m) => m.user?._id === 1,
+                  );
+
+                  const times: number[] = [];
+
+                  if (lastAssistantMessage?.createdAt) {
+                    const createdAt =
+                      lastAssistantMessage.createdAt instanceof Date
+                        ? lastAssistantMessage.createdAt.getTime()
+                        : new Date(lastAssistantMessage.createdAt).getTime();
+                    times.push(createdAt);
+                  }
+
+                  if (lastUserMessage?.createdAt) {
+                    const createdAt =
+                      lastUserMessage.createdAt instanceof Date
+                        ? lastUserMessage.createdAt.getTime()
+                        : new Date(lastUserMessage.createdAt).getTime();
+                    times.push(createdAt);
+                  }
+
+                  if (times.length > 0) {
+                    const lastInteraction = Math.max(...times);
+                    const diffMinutes = (now.getTime() - lastInteraction) / 60000;
+
+                    // Within the last 10 minutes after any activity, always show Online.
+                    if (diffMinutes >= 0 && diffMinutes < 10) {
+                      return "Online";
+                    }
+                  }
+
+                  const presence = getFakePresence(contact.id, now);
+
+                  if (presence.status === "online") {
+                    return "Online";
+                  }
+
+                  if (presence.status === "recently_online") {
+                    const mins = presence.lastSeenMinutesAgo ?? 0;
+                    if (mins < 1) return "Last seen just now";
+                    if (mins < 60) {
+                      return `Last seen ${mins} min ago`;
+                    }
+                    const hours = Math.floor(mins / 60);
+                    if (hours === 1) return "Last seen 1 hour ago";
+                    return `Last seen ${hours} hours ago`;
+                  }
+
+                  return "Offline";
+                })()}
               </Text>
             </View>
           </TouchableOpacity>
@@ -988,12 +1168,12 @@ const styles = StyleSheet.create({
   bubbleRow: {
     flexDirection: "row",
     alignItems: "center",
-    maxWidth: "98%",
+    maxWidth: "100%",
     alignSelf: "flex-start",
   },
   bubbleWithMenu: {
     position: "relative",
-    maxWidth: "98%",
+    maxWidth: "100%",
   },
   messageMenuTrigger: {
     position: "absolute",

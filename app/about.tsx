@@ -29,9 +29,13 @@ export default function About() {
   const privacyUrl = resources?.privacyUrl ?? "https://binahstudio.com";
   const policyUrl = resources?.policyUrl ?? "https://binahstudio.com";
 
-  const instagramUrl = resources?.instagram ?? "https://www.instagram.com/";
-  const twitterUrl = resources?.twitter ?? "https://twitter.com/";
-  const linkedinUrl = resources?.linkedin ?? "https://linkedin.com/company/";
+  const instagramUrl =
+    resources?.instagram ?? "https://www.instagram.com/binahstudio";
+  const twitterUrl = resources?.twitter ?? "https://x.com/binahstudio";
+  const linkedinUrl =
+    resources?.linkedin || "https://www.linkedin.com/company/binahstudio";
+
+  console.log(resources);
 
   const cardBg = isDark ? "#1F1D35" : "#FFFFFF";
   const cardBorder = isDark

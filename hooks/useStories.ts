@@ -1,4 +1,4 @@
-import { getLocalStories, saveLocalStories } from "@/lib/database";
+import { getLocalStories } from "@/lib/database";
 import type { Story } from "@/services/stories";
 import { storiesService } from "@/services/stories";
 import { useQuery } from "@tanstack/react-query";
@@ -9,9 +9,8 @@ export function useStories() {
   return useQuery<Story[]>({
     queryKey: STORIES_QUERY_KEY,
     queryFn: async () => {
-      const remote = await storiesService.getStories();
-      saveLocalStories(remote);
-      return remote;
+      // storiesService handles remote fetch + local caching + offline fallback.
+      return storiesService.getStories();
     },
     refetchInterval: 1000 * 60 * 2,
     placeholderData: () => {

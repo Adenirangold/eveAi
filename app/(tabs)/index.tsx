@@ -17,8 +17,6 @@ import {
   getLastMessageByContact,
   getLocalAvailableContacts,
   getLocalContacts,
-  saveLocalAvailableContacts,
-  saveLocalContacts,
   type LastMessageInfo,
   type UnreadInfo,
 } from "@/lib/database";
@@ -31,6 +29,7 @@ import {
   invalidateUnreadSummary,
   useUnreadSummary,
 } from "@/hooks/useUnreadSummary";
+import { chatService } from "@/services/chat";
 import { registerAndSyncPushToken } from "@/utils/notification";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -423,12 +422,15 @@ export default function Index() {
     registerAndSyncPushToken();
   }, []);
 
-  const { data: contacts = [], isPending: loading } = useQuery({
+  const {
+    data: contacts = [],
+    isPending: loading,
+    isError: contactsError,
+  } = useQuery({
     queryKey: ["contacts"],
     queryFn: async () => {
-      const remote = await contactsService.getContacts();
-      saveLocalContacts(remote);
-      return remote;
+      // contactsService handles remote fetch + local caching + offline fallback.
+      return contactsService.getContacts();
     },
     refetchInterval: 1000 * 60 * 5,
     placeholderData: () => {
@@ -441,12 +443,14 @@ export default function Index() {
     },
   });
 
-  const { data: availableContacts = [] } = useQuery({
+  const {
+    data: availableContacts = [],
+    isError: availableContactsError,
+  } = useQuery({
     queryKey: ["availableContacts"],
     queryFn: async () => {
-      const remote = await contactsService.getAvailableContacts();
-      saveLocalAvailableContacts(remote);
-      return remote;
+      // contactsService handles remote fetch + local caching + offline fallback.
+      return contactsService.getAvailableContacts();
     },
     placeholderData: () => {
       try {
@@ -463,10 +467,34 @@ export default function Index() {
     if (!unreadSummary) return new Map();
     const m = new Map<string, UnreadInfo>();
     unreadSummary.byContact.forEach((v, contactId) => {
-      m.set(contactId, { count: v.count, lastContent: null, lastAt: null });
+      m.set(contactId, {
+        count: v.count,
+        lastContent: v.lastMessage ?? null,
+        lastAt: v.lastMessageTime ?? null,
+      });
     });
     return m;
   }, [unreadSummary]);
+
+  useEffect(() => {
+    if (!unreadSummary) return;
+
+    const unreadEntries = Array.from(unreadSummary.byContact.entries())
+      .filter(([, v]) => v.count > 0)
+      .slice(0, 5);
+
+    unreadEntries.forEach(([contactId]) => {
+      queryClient
+        .prefetchQuery({
+          queryKey: ["chat", contactId],
+          queryFn: () => chatService.fetchAndSync(contactId),
+          staleTime: 10_000,
+        })
+        .catch(() => {
+          // Ignore prefetch errors; normal fetch will run when chat opens.
+        });
+    });
+  }, [unreadSummary, queryClient]);
 
   const lastMessages = useMemo(
     () => getLastMessageByContact(),
@@ -718,7 +746,9 @@ export default function Index() {
                       { color: isDark ? "#888" : "#6B7280" },
                     ]}
                   >
-                    No character found
+                    {contactsError
+                      ? "Unable to load characters. Check your connection."
+                      : "No character found"}
                   </Text>
                 </View>
               }

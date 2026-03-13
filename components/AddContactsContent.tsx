@@ -2,10 +2,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import CustomInput from "@/components/CustomInput";
 import { REELS_QUERY_KEY } from "@/hooks/useReels";
 import { STORIES_QUERY_KEY } from "@/hooks/useStories";
-import {
-  getLocalAvailableContacts,
-  saveLocalAvailableContacts,
-} from "@/lib/database";
+import { getLocalAvailableContacts } from "@/lib/database";
 import { AvailableContact, contactsService } from "@/services/contacts";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetFlatList } from "@gorhom/bottom-sheet";
@@ -148,12 +145,15 @@ export default function AddContactsContent({
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
 
-  const { data: contacts = [], isPending: loading } = useQuery({
+  const {
+    data: contacts = [],
+    isPending: loading,
+    isError: contactsError,
+  } = useQuery({
     queryKey: ["availableContacts"],
     queryFn: async () => {
-      const remote = await contactsService.getAvailableContacts();
-      saveLocalAvailableContacts(remote);
-      return remote;
+      // contactsService handles remote fetch + local caching + offline fallback.
+      return contactsService.getAvailableContacts();
     },
     placeholderData: () => {
       try {
@@ -248,7 +248,9 @@ export default function AddContactsContent({
             <Text
               style={[styles.emptyText, { color: isDark ? "#888" : "#6B7280" }]}
             >
-              No characters available
+              {contactsError
+                ? "Unable to load characters. Check your connection."
+                : "No characters available"}
             </Text>
           }
         />

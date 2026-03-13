@@ -223,7 +223,8 @@ export default function StoryViewer({
     if (!currentStory) return;
 
     const cleanText = currentStory.content?.replace(/^['"]+|['"]+$/g, "") ?? "";
-    const message = `${cleanText}\n\n@binahstudio`;
+    const shareUrl = `https://eveai-app.binahstudio.com/story/share/${currentStory.contact.slug}`;
+    const message = `${cleanText}\n\n${shareUrl}`;
 
     cancelAnimation(progressValue);
     try {
@@ -328,7 +329,7 @@ export default function StoryViewer({
                   onPress={handleShare}
                   hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
                 >
-                  <Ionicons name="share-outline" size={24} color="#fff" />
+                  <Ionicons name="share-social" size={20} color="#fff" />
                 </TouchableOpacity>
 
                 <TouchableOpacity
