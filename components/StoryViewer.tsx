@@ -224,7 +224,7 @@ export default function StoryViewer({
 
     const cleanText = currentStory.content?.replace(/^['"]+|['"]+$/g, "") ?? "";
     const shareUrl = `https://eveai-app.binahstudio.com/story/share/${currentStory.contact.slug}`;
-    const message = `${cleanText}\n\n${shareUrl}`;
+    const message = `${currentStory.contact.name}\n\n${cleanText}\n\n${shareUrl}`;
 
     cancelAnimation(progressValue);
     try {
