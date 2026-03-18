@@ -542,6 +542,8 @@ export default function ChatScreen() {
                 <Popover
                   isVisible={activeMessageMenuId === msg._id}
                   onRequestClose={() => setActiveMessageMenuId(null)}
+                  closeOnBackgroundInteraction
+                  backgroundStyle={{ backgroundColor: "rgba(0,0,0,0.25)" }}
                   popoverStyle={[
                     styles.messageMenu,
                     {
@@ -567,28 +569,41 @@ export default function ChatScreen() {
                     </TouchableOpacity>
                   }
                 >
-                  <TouchableOpacity
-                    style={styles.messageMenuItem}
-                    activeOpacity={0.7}
-                    onPress={() => {
-                      handleCopy();
-                      setActiveMessageMenuId(null);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.messageMenuText,
-                        { color: isDark ? "#E5E7EB" : "#111827" },
-                      ]}
+                  <View style={styles.messageMenuHeader}>
+                    <TouchableOpacity
+                      style={styles.messageMenuItem}
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        handleCopy();
+                        setActiveMessageMenuId(null);
+                      }}
                     >
-                      Copy
-                    </Text>
-                    <Ionicons
-                      name="copy-outline"
-                      size={18}
-                      color={isDark ? "#E5E7EB" : "#111827"}
-                    />
-                  </TouchableOpacity>
+                      <Text
+                        style={[
+                          styles.messageMenuText,
+                          { color: isDark ? "#E5E7EB" : "#111827" },
+                        ]}
+                      >
+                        Copy
+                      </Text>
+                      <Ionicons
+                        name="copy-outline"
+                        size={18}
+                        color={isDark ? "#E5E7EB" : "#111827"}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.messageMenuCloseButton}
+                      activeOpacity={0.7}
+                      onPress={() => setActiveMessageMenuId(null)}
+                    >
+                      <Ionicons
+                        name="close"
+                        size={16}
+                        color={isDark ? "#E5E7EB" : "#4B5563"}
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </Popover>
               ) : null}
             </View>
@@ -1200,6 +1215,15 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 4,
     gap: 6,
+  },
+  messageMenuHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  messageMenuCloseButton: {
+    padding: 4,
   },
   messageMenuText: {
     fontSize: 13,

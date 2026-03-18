@@ -12,12 +12,27 @@ export default function ProfileSkeleton() {
   const colorMode = isDark ? "dark" : "light";
   const colors = isDark ? [...DARK_COLORS] : [...LIGHT_COLORS];
 
+  const cardBackground = isDark ? "#1F1D35" : "#FFFFFF";
+  const cardBorderColor = isDark ? "#2D2B4A" : "#E0DCF0";
+
   return (
     <ScrollView
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
       scrollEnabled={false}
     >
+      {/* Theme toggle row */}
+      <View style={styles.themeRow}>
+        <Skeleton
+          colorMode={colorMode}
+          colors={colors}
+          radius={999}
+          width={56}
+          height={28}
+        />
+      </View>
+
+      {/* Avatar + name + email */}
       <View style={styles.header}>
         <Skeleton
           colorMode={colorMode}
@@ -29,67 +44,284 @@ export default function ProfileSkeleton() {
         <Skeleton
           colorMode={colorMode}
           colors={colors}
-          radius={6}
-          width={160}
+          radius={8}
+          width={180}
           height={22}
         />
         <Skeleton
           colorMode={colorMode}
           colors={colors}
-          radius={6}
-          width={200}
+          radius={8}
+          width={220}
           height={16}
         />
       </View>
 
-      <View style={styles.card}>
+      {/* Account card */}
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: cardBackground,
+            borderColor: cardBorderColor,
+          },
+        ]}
+      >
+        {/* Section label */}
+        <Skeleton
+          colorMode={colorMode}
+          colors={colors}
+          radius={6}
+          width="32%"
+          height={12}
+        />
+
+        {/* Username row */}
+        <View style={styles.row}>
+          <Skeleton
+            colorMode={colorMode}
+            colors={colors}
+            radius={999}
+            width={36}
+            height={36}
+          />
+          <View style={styles.rowText}>
+            <Skeleton
+              colorMode={colorMode}
+              colors={colors}
+              radius={6}
+              width="45%"
+              height={14}
+            />
+            <Skeleton
+              colorMode={colorMode}
+              colors={colors}
+              radius={6}
+              width="30%"
+              height={12}
+            />
+          </View>
+        </View>
+
+        {/* Divider */}
+        <View style={styles.separator} />
+
+        {/* Status + member since rows */}
+        <View style={styles.rowCompact}>
+          <Skeleton
+            colorMode={colorMode}
+            colors={colors}
+            radius={6}
+            width="55%"
+            height={14}
+          />
+        </View>
+        <View style={styles.rowCompact}>
+          <Skeleton
+            colorMode={colorMode}
+            colors={colors}
+            radius={6}
+            width="48%"
+            height={14}
+          />
+        </View>
+      </View>
+
+      {/* Settings card */}
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: cardBackground,
+            borderColor: cardBorderColor,
+          },
+        ]}
+      >
         <Skeleton
           colorMode={colorMode}
           colors={colors}
           radius={6}
           width="40%"
-          height={14}
+          height={12}
         />
-        <View style={styles.cardRow} />
-        <Skeleton
-          colorMode={colorMode}
-          colors={colors}
-          radius={6}
-          width="70%"
-          height={14}
-        />
-        <Skeleton
-          colorMode={colorMode}
-          colors={colors}
-          radius={6}
-          width="50%"
-          height={14}
-        />
+
+        <View style={styles.row}>
+          <Skeleton
+            colorMode={colorMode}
+            colors={colors}
+            radius={999}
+            width={36}
+            height={36}
+          />
+          <View style={styles.rowText}>
+            <Skeleton
+              colorMode={colorMode}
+              colors={colors}
+              radius={6}
+              width="55%"
+              height={14}
+            />
+            <Skeleton
+              colorMode={colorMode}
+              colors={colors}
+              radius={6}
+              width="26%"
+              height={12}
+            />
+          </View>
+        </View>
+
+        <View style={styles.separator} />
+
+        <View style={styles.row}>
+          <Skeleton
+            colorMode={colorMode}
+            colors={colors}
+            radius={999}
+            width={36}
+            height={36}
+          />
+          <View style={styles.rowText}>
+            <Skeleton
+              colorMode={colorMode}
+              colors={colors}
+              radius={6}
+              width="60%"
+              height={14}
+            />
+          </View>
+        </View>
       </View>
 
-      <View style={styles.card}>
+      {/* Terms card */}
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: cardBackground,
+            borderColor: cardBorderColor,
+          },
+        ]}
+      >
         <Skeleton
           colorMode={colorMode}
           colors={colors}
           radius={6}
-          width="35%"
-          height={14}
+          width="55%"
+          height={12}
         />
-        <View style={styles.cardRow} />
-        <Skeleton
-          colorMode={colorMode}
-          colors={colors}
-          radius={6}
-          width="80%"
-          height={14}
-        />
-        <Skeleton
-          colorMode={colorMode}
-          colors={colors}
-          radius={6}
-          width="65%"
-          height={14}
-        />
+
+        <View style={styles.row}>
+          <Skeleton
+            colorMode={colorMode}
+            colors={colors}
+            radius={999}
+            width={36}
+            height={36}
+          />
+          <View style={styles.rowText}>
+            <Skeleton
+              colorMode={colorMode}
+              colors={colors}
+              radius={6}
+              width="58%"
+              height={14}
+            />
+          </View>
+        </View>
+
+        <View style={styles.separator} />
+
+        <View style={styles.row}>
+          <Skeleton
+            colorMode={colorMode}
+            colors={colors}
+            radius={999}
+            width={36}
+            height={36}
+          />
+          <View style={styles.rowText}>
+            <Skeleton
+              colorMode={colorMode}
+              colors={colors}
+              radius={6}
+              width="52%"
+              height={14}
+            />
+          </View>
+        </View>
+
+        <View style={styles.separator} />
+
+        <View style={styles.row}>
+          <Skeleton
+            colorMode={colorMode}
+            colors={colors}
+            radius={999}
+            width={36}
+            height={36}
+          />
+          <View style={styles.rowText}>
+            <Skeleton
+              colorMode={colorMode}
+              colors={colors}
+              radius={6}
+              width="40%"
+              height={14}
+            />
+          </View>
+        </View>
+      </View>
+
+      {/* Danger card */}
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: cardBackground,
+            borderColor: cardBorderColor,
+          },
+        ]}
+      >
+        <View style={styles.row}>
+          <Skeleton
+            colorMode={colorMode}
+            colors={colors}
+            radius={999}
+            width={36}
+            height={36}
+          />
+          <View style={styles.rowText}>
+            <Skeleton
+              colorMode={colorMode}
+              colors={colors}
+              radius={6}
+              width="70%"
+              height={14}
+            />
+          </View>
+        </View>
+
+        <View style={styles.separator} />
+
+        <View style={styles.row}>
+          <Skeleton
+            colorMode={colorMode}
+            colors={colors}
+            radius={999}
+            width={36}
+            height={36}
+          />
+          <View style={styles.rowText}>
+            <Skeleton
+              colorMode={colorMode}
+              colors={colors}
+              radius={6}
+              width="40%"
+              height={14}
+            />
+          </View>
+        </View>
       </View>
     </ScrollView>
   );
@@ -99,22 +331,43 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     paddingHorizontal: 20,
-    paddingTop: 40,
+    paddingTop: 24,
     paddingBottom: 40,
+  },
+  themeRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingTop: 8,
   },
   header: {
     alignItems: "center",
-    marginBottom: 32,
-    gap: 10,
+    paddingTop: 16,
+    paddingBottom: 24,
+    gap: 12,
   },
   card: {
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     marginBottom: 16,
-    gap: 10,
+    borderWidth: 1,
   },
-  cardRow: {
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    columnGap: 12,
+    marginTop: 14,
+  },
+  rowText: {
+    flex: 1,
+    rowGap: 6,
+  },
+  rowCompact: {
+    marginTop: 10,
+  },
+  separator: {
     height: 1,
+    marginTop: 14,
   },
 });
 
