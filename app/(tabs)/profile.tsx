@@ -580,11 +580,14 @@ export default function Profile() {
                 <View className="w-9 h-9 rounded-xl items-center justify-center mr-4">
                   <Image
                     source={icons.logout}
-                    style={{ width: 18, height: 18, tintColor: "#DC2626" }}
+                    style={{ width: 18, height: 18, tintColor: "#6C56FF" }}
                     resizeMode="contain"
                   />
                 </View>
-                <Text className="font-OutfitMedium text-base text-[#DC2626] flex-1">
+                <Text
+                  className="font-OutfitMedium text-base  flex-1"
+                  style={{ color: labelColor }}
+                >
                   Log out
                 </Text>
               </Pressable>
