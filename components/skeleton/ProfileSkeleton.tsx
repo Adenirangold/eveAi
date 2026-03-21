@@ -1,4 +1,5 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useScrollColumnStyle } from "@/hooks/use-responsive-layout";
 import { Skeleton } from "moti/skeleton";
 import React from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -8,6 +9,7 @@ const DARK_COLORS = ["#1C1C2E", "#2A2A3D", "#1C1C2E"] as const;
 const LIGHT_COLORS = ["#E8E5F5", "#D5D0EC", "#E8E5F5"] as const;
 
 export default function ProfileSkeleton() {
+  const columnStyle = useScrollColumnStyle();
   const isDark = useColorScheme() === "dark";
   const colorMode = isDark ? "dark" : "light";
   const colors = isDark ? [...DARK_COLORS] : [...LIGHT_COLORS];
@@ -16,6 +18,7 @@ export default function ProfileSkeleton() {
   const cardBorderColor = isDark ? "#2D2B4A" : "#E0DCF0";
 
   return (
+    <View style={columnStyle}>
     <ScrollView
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
@@ -324,6 +327,7 @@ export default function ProfileSkeleton() {
         </View>
       </View>
     </ScrollView>
+    </View>
   );
 }
 

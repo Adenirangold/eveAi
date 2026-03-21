@@ -1,4 +1,5 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useScrollColumnStyle } from "@/hooks/use-responsive-layout";
 import { Skeleton } from "moti/skeleton";
 import React from "react";
 import { StyleSheet, View } from "react-native";
@@ -55,8 +56,9 @@ function Row() {
 }
 
 export default function ChatRowSkeleton({ count = ROW_COUNT }: { count?: number }) {
+  const columnStyle = useScrollColumnStyle();
   return (
-    <View>
+    <View style={columnStyle}>
       {Array.from({ length: count }).map((_, i) => (
         <Row key={i} />
       ))}
