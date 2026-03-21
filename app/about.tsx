@@ -2,6 +2,7 @@ import BackButton from "@/components/BackButton";
 import Background from "@/components/BackGround";
 import images from "@/constants/images";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import { useResources } from "@/hooks/useAuth";
 import { useVersion } from "@/hooks/useVersion";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,6 +23,16 @@ const APP_VERSION = Constants.expoConfig?.version ?? "1.0.0";
 
 export default function About() {
   const isDark = useColorScheme() === "dark";
+  const { isLargeFormFactor, contentMaxWidth } = useResponsiveLayout();
+  const scrollColumnStyle =
+    isLargeFormFactor && contentMaxWidth != null
+      ? {
+          flex: 1,
+          width: "100%" as const,
+          maxWidth: contentMaxWidth,
+          alignSelf: "center" as const,
+        }
+      : { flex: 1 };
   const { data: resources } = useResources();
   const { data: versionInfo } = useVersion();
   const displayVersion = versionInfo?.version ?? APP_VERSION;
@@ -34,8 +45,6 @@ export default function About() {
   const twitterUrl = resources?.twitter ?? "https://x.com/binahstudio";
   const linkedinUrl =
     resources?.linkedin || "https://www.linkedin.com/company/binahstudio";
-
-  console.log(resources);
 
   const cardBg = isDark ? "#1F1D35" : "#FFFFFF";
   const cardBorder = isDark
@@ -50,10 +59,11 @@ export default function About() {
   return (
     <Background>
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={{ paddingBottom: 60 }}
-          showsVerticalScrollIndicator={false}
-        >
+        <View style={scrollColumnStyle}>
+          <ScrollView
+            contentContainerStyle={{ paddingBottom: 60 }}
+            showsVerticalScrollIndicator={false}
+          >
           <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
             <BackButton />
           </View>
@@ -241,6 +251,7 @@ export default function About() {
             </View>
           </View>
         </ScrollView>
+        </View>
       </SafeAreaView>
     </Background>
   );

@@ -5,6 +5,7 @@ import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import ProfileSkeleton from "@/components/skeleton/ProfileSkeleton";
 import icons from "@/constants/icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import {
   useLogout,
   useProfile,
@@ -74,6 +75,17 @@ export default function Profile() {
   const colorScheme = useColorScheme();
   const setThemePreference = useThemeStore((s) => s.setPreference);
   const isDark = colorScheme === "dark";
+  const { isLargeFormFactor, contentMaxWidth } = useResponsiveLayout();
+
+  const scrollColumnStyle =
+    isLargeFormFactor && contentMaxWidth != null
+      ? {
+          flex: 1,
+          width: "100%" as const,
+          maxWidth: contentMaxWidth,
+          alignSelf: "center" as const,
+        }
+      : { flex: 1 };
 
   const handleThemeToggle = (value: boolean) => {
     setThemePreference(value ? "dark" : "light");
@@ -237,7 +249,9 @@ export default function Profile() {
     return (
       <Background>
         <SafeAreaView className="flex-1">
-          <ProfileSkeleton />
+          <View style={scrollColumnStyle}>
+            <ProfileSkeleton />
+          </View>
         </SafeAreaView>
       </Background>
     );
@@ -246,21 +260,22 @@ export default function Profile() {
   return (
     <Background>
       <SafeAreaView className="flex-1">
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{ paddingBottom: 100 }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={isDark ? "#A78BFA" : "#1A1A2E"}
-              colors={[isDark ? "#A78BFA" : "#1A1A2E"]}
-              progressBackgroundColor={isDark ? "#1E1740" : "#FFFFFF"}
-            />
-          }
-        >
-          <VerifyEmailBanner />
+        <View style={scrollColumnStyle}>
+          <ScrollView
+            className="flex-1"
+            contentContainerStyle={{ paddingBottom: 100 }}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={isDark ? "#A78BFA" : "#1A1A2E"}
+                colors={[isDark ? "#A78BFA" : "#1A1A2E"]}
+                progressBackgroundColor={isDark ? "#1E1740" : "#FFFFFF"}
+              />
+            }
+          >
+            <VerifyEmailBanner />
 
           {/* Theme Toggle */}
           <View className="flex-row items-center justify-end px-5 pt-4 gap-2">
@@ -594,6 +609,7 @@ export default function Profile() {
             </View>
           </View>
         </ScrollView>
+        </View>
 
         {/* Notification Modal */}
         <Modal

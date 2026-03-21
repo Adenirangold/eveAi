@@ -10,7 +10,6 @@ import React, {
   useState,
 } from "react";
 import {
-  Dimensions,
   FlatList,
   Modal,
   NativeScrollEvent,
@@ -21,6 +20,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import {
   Gesture,
@@ -39,8 +39,9 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import VerifiedBadge from "./VerifiedBadge";
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 const DISMISS_THRESHOLD = 120;
+/** Reference shorter side ~ iPhone 14 width for scaling story text on tablets. */
+const STORY_CONTENT_BASE = 390;
 const STORY_DURATION = 6000;
 
 interface Props {
@@ -58,6 +59,7 @@ export default function StoryViewer({
   onClose,
   onStoryViewed,
 }: Props) {
+  const { width: winW, height: winH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const safeIndex = Math.min(
     Math.max(initialIndex, 0),
@@ -72,7 +74,12 @@ export default function StoryViewer({
   const backdropOpacity = useSharedValue(1);
   const progressValue = useSharedValue(0);
 
-  const trackPixelWidth = SCREEN_W - 24;
+  const trackPixelWidth = winW - 24;
+  const contentScale = Math.min(
+    1.5,
+    Math.max(1, Math.min(winW, winH) / STORY_CONTENT_BASE),
+  );
+  const headerScale = Math.min(contentScale, 1.2);
 
   // ── JS callbacks used from worklets ─────────────────
   const dismiss = useCallback(() => {
@@ -155,13 +162,13 @@ export default function StoryViewer({
       translateY.value = Math.max(0, e.translationY);
       backdropOpacity.value = Math.max(
         0,
-        1 - e.translationY / (SCREEN_H * 0.45),
+        1 - e.translationY / (winH * 0.45),
       );
     })
     .onEnd((e) => {
       "worklet";
       if (e.translationY > DISMISS_THRESHOLD || e.velocityY > 800) {
-        translateY.value = withTiming(SCREEN_H, { duration: 250 });
+        translateY.value = withTiming(winH, { duration: 250 });
         backdropOpacity.value = withTiming(0, { duration: 250 }, () => {
           runOnJS(dismiss)();
         });
@@ -204,7 +211,7 @@ export default function StoryViewer({
       const velocityX = e.nativeEvent.velocity?.x ?? 0;
 
       if (indexRef.current === stories.length - 1 && velocityX < -0.5) {
-        translateY.value = withTiming(SCREEN_H, { duration: 250 });
+        translateY.value = withTiming(winH, { duration: 250 });
         backdropOpacity.value = withTiming(0, { duration: 250 }, () => {
           runOnJS(dismiss)();
         });
@@ -258,9 +265,10 @@ export default function StoryViewer({
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               initialScrollIndex={safeIndex}
+              extraData={`${winW}x${winH}`}
               getItemLayout={(_, i) => ({
-                length: SCREEN_W,
-                offset: SCREEN_W * i,
+                length: winW,
+                offset: winW * i,
                 index: i,
               })}
               onViewableItemsChanged={onViewable}
@@ -276,7 +284,7 @@ export default function StoryViewer({
                       ]);
                 return (
                   <Pressable
-                    style={vs.page}
+                    style={[vs.page, { width: winW, height: winH }]}
                     delayLongPress={250}
                     onLongPress={() => {
                       cancelAnimation(progressValue);
@@ -291,11 +299,32 @@ export default function StoryViewer({
                       start={{ x: 0, y: 0 }}
                       end={{ x: 0.5, y: 1 }}
                     />
-                    <View style={vs.center}>
-                      <Text style={vs.quote}>
+                    <View
+                      style={[
+                        vs.center,
+                        { paddingHorizontal: 36 * contentScale },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          vs.quote,
+                          {
+                            fontSize: 22 * contentScale,
+                            lineHeight: 34 * contentScale,
+                          },
+                        ]}
+                      >
                         {item.content?.replace(/^['"]+|['"]+$/g, "")}
                       </Text>
-                      <Text style={vs.attribution}>
+                      <Text
+                        style={[
+                          vs.attribution,
+                          {
+                            fontSize: 18 * contentScale,
+                            marginTop: 16 * contentScale,
+                          },
+                        ]}
+                      >
                         — {item.contact.name} —
                       </Text>
                     </View>
@@ -316,12 +345,25 @@ export default function StoryViewer({
               <View style={vs.user}>
                 <ExpoImage
                   source={story.contact.avatar}
-                  style={vs.hAvatar}
+                  style={[
+                    vs.hAvatar,
+                    {
+                      width: 32 * headerScale,
+                      height: 32 * headerScale,
+                      borderRadius: 16 * headerScale,
+                    },
+                  ]}
                   contentFit="cover"
                 />
-                <Text style={vs.hName}>{story.contact.name}</Text>
-                {story.contact.isPremium && <VerifiedBadge size={14} />}
-                <Text style={vs.hTime}>{timeAgo(story.createdAt)}</Text>
+                <Text style={[vs.hName, { fontSize: 14 * headerScale }]}>
+                  {story.contact.name}
+                </Text>
+                {story.contact.isPremium && (
+                  <VerifiedBadge size={Math.round(14 * headerScale)} />
+                )}
+                <Text style={[vs.hTime, { fontSize: 12 * headerScale }]}>
+                  {timeAgo(story.createdAt)}
+                </Text>
               </View>
 
               <View style={vs.headerActions}>
@@ -329,14 +371,22 @@ export default function StoryViewer({
                   onPress={handleShare}
                   hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
                 >
-                  <Ionicons name="share-social" size={20} color="#fff" />
+                  <Ionicons
+                    name="share-social"
+                    size={Math.round(20 * headerScale)}
+                    color="#fff"
+                  />
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   onPress={handleClose}
                   hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
                 >
-                  <Ionicons name="close" size={30} color="#fff" />
+                  <Ionicons
+                    name="close"
+                    size={Math.round(30 * headerScale)}
+                    color="#fff"
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -367,28 +417,22 @@ const vs = StyleSheet.create({
     flex: 1,
   },
   page: {
-    width: SCREEN_W,
-    height: SCREEN_H,
+    flexShrink: 0,
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 36,
   },
   quote: {
     color: "#fff",
-    fontSize: 22,
     fontWeight: "600",
     textAlign: "center",
-    lineHeight: 34,
     fontFamily: "Outfit-Regular",
     fontStyle: "italic",
   },
   attribution: {
     color: "rgba(255,255,255,0.9)",
-    fontSize: 18,
-    marginTop: 16,
     textAlign: "center",
     fontFamily: "Outfit-Regular",
   },
@@ -429,19 +473,14 @@ const vs = StyleSheet.create({
     gap: 8,
   },
   hAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
     backgroundColor: "#1C1C2E",
   },
   hName: {
     color: "#fff",
-    fontSize: 14,
     fontWeight: "700",
   },
   hTime: {
     color: "rgba(255,255,255,0.55)",
-    fontSize: 12,
   },
   x: {
     color: "#fff",

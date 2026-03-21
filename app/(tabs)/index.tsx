@@ -10,8 +10,13 @@ import ChatsHeaderSkeleton from "@/components/skeleton/ChatsHeaderSkeleton";
 import images from "@/constants/images";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useMaintenanceCheck } from "@/hooks/useMaintenanceCheck";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import { REELS_QUERY_KEY } from "@/hooks/useReels";
 import { STORIES_QUERY_KEY } from "@/hooks/useStories";
+import {
+  invalidateUnreadSummary,
+  useUnreadSummary,
+} from "@/hooks/useUnreadSummary";
 import {
   deleteLocalContact,
   getLastMessageByContact,
@@ -20,16 +25,12 @@ import {
   type LastMessageInfo,
   type UnreadInfo,
 } from "@/lib/database";
+import { chatService } from "@/services/chat";
 import {
   Contact,
   contactsService,
   type AvailableContact,
 } from "@/services/contacts";
-import {
-  invalidateUnreadSummary,
-  useUnreadSummary,
-} from "@/hooks/useUnreadSummary";
-import { chatService } from "@/services/chat";
 import { registerAndSyncPushToken } from "@/utils/notification";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -405,6 +406,16 @@ export default function Index() {
   const [sortKey, setSortKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const isDark = useColorScheme() === "dark";
+  const { isLargeFormFactor, contentMaxWidth } = useResponsiveLayout();
+  const scrollColumnStyle =
+    isLargeFormFactor && contentMaxWidth != null
+      ? {
+          flex: 1,
+          width: "100%" as const,
+          maxWidth: contentMaxWidth,
+          alignSelf: "center" as const,
+        }
+      : { flex: 1 };
   const [addingAvailableIds, setAddingAvailableIds] = useState<Set<string>>(
     new Set(),
   );
@@ -443,24 +454,22 @@ export default function Index() {
     },
   });
 
-  const {
-    data: availableContacts = [],
-    isError: availableContactsError,
-  } = useQuery({
-    queryKey: ["availableContacts"],
-    queryFn: async () => {
-      // contactsService handles remote fetch + local caching + offline fallback.
-      return contactsService.getAvailableContacts();
-    },
-    placeholderData: () => {
-      try {
-        const cached = getLocalAvailableContacts();
-        return cached.length > 0 ? cached : undefined;
-      } catch {
-        return undefined;
-      }
-    },
-  });
+  const { data: availableContacts = [], isError: availableContactsError } =
+    useQuery({
+      queryKey: ["availableContacts"],
+      queryFn: async () => {
+        // contactsService handles remote fetch + local caching + offline fallback.
+        return contactsService.getAvailableContacts();
+      },
+      placeholderData: () => {
+        try {
+          const cached = getLocalAvailableContacts();
+          return cached.length > 0 ? cached : undefined;
+        } catch {
+          return undefined;
+        }
+      },
+    });
 
   const { data: unreadSummary } = useUnreadSummary();
   const unreadCounts = useMemo((): Map<string, UnreadInfo> => {
@@ -526,7 +535,6 @@ export default function Index() {
     },
     [lastMessages, unreadCounts],
   );
-
 
   const filteredContacts = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -645,116 +653,121 @@ export default function Index() {
     <Background>
       <SafeAreaView style={styles.safe}>
         <MaintenanceModal visible={maintenance} />
-        {loading ? (
-          <View>
-            <Reels />
-            <ChatsHeaderSkeleton />
-            <ChatRowSkeleton />
-          </View>
-        ) : (
-          <>
-            <View>
-              <ChatsHeader onAddPress={openAddContacts} />
+        <View style={scrollColumnStyle}>
+          {loading ? (
+            <View style={{ flex: 1 }}>
               <Reels />
-              <ChatsSearch
-                search={search}
-                onSearchChange={setSearch}
-                showSearch={contacts.length > 0}
-              />
+              <ChatsHeaderSkeleton />
+              <ChatRowSkeleton />
             </View>
-            <FlatList
-              data={[
-                ...filteredContacts.map((c) => ({
-                  kind: "contact" as const,
-                  contact: c,
-                })),
-                ...(search.trim().length > 0
-                  ? [
-                      ...(availableMatches.length > 0
-                        ? [{ kind: "availableHeader" as const }]
-                        : []),
-                      ...availableMatches.map((c) => ({
-                        kind: "available" as const,
-                        contact: c,
-                      })),
-                    ]
-                  : []),
-              ]}
-              keyExtractor={(item) =>
-                item.kind === "availableHeader"
-                  ? "available-header"
-                  : item.kind === "contact"
-                    ? `contact-${item.contact.id}`
-                    : `available-${item.contact.id}`
-              }
-              renderItem={({ item, index }) =>
-                item.kind === "availableHeader" ? (
-                  <View style={styles.availableSectionHeader}>
+          ) : (
+            <View style={{ flex: 1 }}>
+              <View>
+                <ChatsHeader onAddPress={openAddContacts} />
+                <Reels />
+                <ChatsSearch
+                  search={search}
+                  onSearchChange={setSearch}
+                  showSearch={contacts.length > 0}
+                />
+              </View>
+              <FlatList
+                style={{ flex: 1 }}
+                data={[
+                  ...filteredContacts.map((c) => ({
+                    kind: "contact" as const,
+                    contact: c,
+                  })),
+                  ...(search.trim().length > 0
+                    ? [
+                        ...(availableMatches.length > 0
+                          ? [{ kind: "availableHeader" as const }]
+                          : []),
+                        ...availableMatches.map((c) => ({
+                          kind: "available" as const,
+                          contact: c,
+                        })),
+                      ]
+                    : []),
+                ]}
+                keyExtractor={(item) =>
+                  item.kind === "availableHeader"
+                    ? "available-header"
+                    : item.kind === "contact"
+                      ? `contact-${item.contact.id}`
+                      : `available-${item.contact.id}`
+                }
+                renderItem={({ item, index }) =>
+                  item.kind === "availableHeader" ? (
+                    <View style={styles.availableSectionHeader}>
+                      <Text
+                        style={[
+                          styles.availableSectionTitle,
+                          { color: isDark ? "#888" : "#6B7280" },
+                        ]}
+                      >
+                        New Characters
+                      </Text>
+                    </View>
+                  ) : item.kind === "contact" ? (
+                    <ChatRow
+                      item={item.contact}
+                      lastMessage={getDisplayLastMessage(item.contact.id)}
+                      unreadCount={
+                        unreadCounts.get(item.contact.id)?.count ?? 0
+                      }
+                      onDelete={deleteContact}
+                      onPress={openChat}
+                      isFirst={index === 0}
+                    />
+                  ) : (
+                    <AvailableContactRow
+                      item={item.contact}
+                      onAdd={handleAddAvailable}
+                      adding={addingAvailableIds.has(item.contact.id)}
+                      added={addedAvailableIds.has(item.contact.id)}
+                      isFirst={
+                        index ===
+                        filteredContacts.length +
+                          (availableMatches.length > 0 ? 1 : 0)
+                      }
+                    />
+                  )
+                }
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    tintColor={isDark ? "#A78BFA" : "#1A1A2E"}
+                    colors={[isDark ? "#A78BFA" : "#1A1A2E"]}
+                    progressBackgroundColor={isDark ? "#1E1740" : "#FFFFFF"}
+                  />
+                }
+                ListEmptyComponent={
+                  <View style={styles.emptyContainer}>
+                    <Ionicons
+                      name="people-outline"
+                      size={48}
+                      color={isDark ? "#333" : "#C4B5FD"}
+                    />
                     <Text
                       style={[
-                        styles.availableSectionTitle,
+                        styles.emptyText,
                         { color: isDark ? "#888" : "#6B7280" },
                       ]}
                     >
-                      New Characters
+                      {contactsError
+                        ? "Unable to load characters. Check your connection."
+                        : "No character found"}
                     </Text>
                   </View>
-                ) : item.kind === "contact" ? (
-                  <ChatRow
-                    item={item.contact}
-                    lastMessage={getDisplayLastMessage(item.contact.id)}
-                    unreadCount={unreadCounts.get(item.contact.id)?.count ?? 0}
-                    onDelete={deleteContact}
-                    onPress={openChat}
-                    isFirst={index === 0}
-                  />
-                ) : (
-                  <AvailableContactRow
-                    item={item.contact}
-                    onAdd={handleAddAvailable}
-                    adding={addingAvailableIds.has(item.contact.id)}
-                    added={addedAvailableIds.has(item.contact.id)}
-                    isFirst={
-                      index ===
-                      filteredContacts.length +
-                        (availableMatches.length > 0 ? 1 : 0)
-                    }
-                  />
-                )
-              }
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={onRefresh}
-                  tintColor={isDark ? "#A78BFA" : "#1A1A2E"}
-                  colors={[isDark ? "#A78BFA" : "#1A1A2E"]}
-                  progressBackgroundColor={isDark ? "#1E1740" : "#FFFFFF"}
-                />
-              }
-              ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <Ionicons
-                    name="people-outline"
-                    size={48}
-                    color={isDark ? "#333" : "#C4B5FD"}
-                  />
-                  <Text
-                    style={[
-                      styles.emptyText,
-                      { color: isDark ? "#888" : "#6B7280" },
-                    ]}
-                  >
-                    {contactsError
-                      ? "Unable to load characters. Check your connection."
-                      : "No character found"}
-                  </Text>
-                </View>
-              }
-            />
-          </>
-        )}
+                }
+              />
+            </View>
+          )}
+        </View>
       </SafeAreaView>
     </Background>
   );

@@ -1,17 +1,31 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import React from "react";
 import { Text, View } from "react-native";
 import Toast, { BaseToast, BaseToastProps } from "react-native-toast-message";
 
+function useToastWidthStyle() {
+  const { isLargeFormFactor, contentMaxWidth } = useResponsiveLayout();
+  if (isLargeFormFactor && contentMaxWidth != null) {
+    return {
+      width: "100%" as const,
+      maxWidth: Math.min(contentMaxWidth, 520),
+      alignSelf: "center" as const,
+    };
+  }
+  return { width: "90%" as const };
+}
+
 function SuccessToast(props: BaseToastProps & { fullMessage?: string }) {
   const isDark = useColorScheme() === "dark";
+  const widthStyle = useToastWidthStyle();
   const successMessage = (props.fullMessage as string) || props.text2 || "";
 
   return (
     <View
       style={{
         minHeight: 60,
-        width: "90%",
+        ...widthStyle,
         backgroundColor: isDark ? "#1D1B31" : "#FFFFFF",
         borderRadius: 12,
         borderLeftWidth: 4,
@@ -54,13 +68,14 @@ function SuccessToast(props: BaseToastProps & { fullMessage?: string }) {
 
 function ErrorToast(props: BaseToastProps & { fullMessage?: string }) {
   const isDark = useColorScheme() === "dark";
+  const widthStyle = useToastWidthStyle();
   const errorMessage = (props.fullMessage as string) || props.text2 || "";
 
   return (
     <View
       style={{
         minHeight: 60,
-        width: "90%",
+        ...widthStyle,
         backgroundColor: isDark ? "#1D1B31" : "#FFFFFF",
         borderRadius: 12,
         borderLeftWidth: 4,
@@ -103,6 +118,7 @@ function ErrorToast(props: BaseToastProps & { fullMessage?: string }) {
 
 function InfoToast(props: BaseToastProps) {
   const isDark = useColorScheme() === "dark";
+  const widthStyle = useToastWidthStyle();
 
   return (
     <BaseToast
@@ -112,6 +128,7 @@ function InfoToast(props: BaseToastProps) {
         backgroundColor: isDark ? "#1D1B31" : "#FFFFFF",
         borderRadius: 12,
         height: 60,
+        ...widthStyle,
       }}
       contentContainerStyle={{ paddingHorizontal: 15 }}
       text1Style={{

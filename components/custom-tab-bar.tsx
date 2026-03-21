@@ -1,8 +1,9 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import { useUnreadSummary } from "@/hooks/useUnreadSummary";
 import { Ionicons } from "@expo/vector-icons";
-import * as Notifications from "expo-notifications";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import * as Notifications from "expo-notifications";
 
 import React, { useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -39,6 +40,7 @@ export default function CustomTabBar({
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const { isLargeFormFactor, contentMaxWidth } = useResponsiveLayout();
   const { data: unreadSummary } = useUnreadSummary();
   const totalUnread = unreadSummary?.totalUnread ?? 0;
 
@@ -46,15 +48,10 @@ export default function CustomTabBar({
     Notifications.setBadgeCountAsync(totalUnread).catch(() => {});
   }, [totalUnread]);
 
-  return (
-    <View
-      style={[
-        styles.wrapper,
-        { bottom: Math.max(insets.bottom, 16) + 15 },
-        isDark ? styles.wrapperDark : styles.wrapperLight,
-      ]}
-    >
-      <View style={styles.container}>
+  const bottomOffset = Math.max(insets.bottom, 16) + 15;
+
+  const barBody = (
+    <View style={styles.container}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
@@ -64,10 +61,8 @@ export default function CustomTabBar({
             label: route.name,
           };
           const iconName = isFocused ? meta.active : meta.inactive;
-          const iconColor =
-            isDark ? "#fff" : isFocused ? "#6C56FF" : "#6B7280";
-          const showBadge =
-            route.name === "index" && totalUnread > 0;
+          const iconColor = isDark ? "#fff" : isFocused ? "#6C56FF" : "#6B7280";
+          const showBadge = route.name === "index" && totalUnread > 0;
 
           const onPress = () => {
             const event = navigation.emit({
@@ -113,21 +108,66 @@ export default function CustomTabBar({
             </TouchableOpacity>
           );
         })}
+    </View>
+  );
+
+  if (isLargeFormFactor && contentMaxWidth != null) {
+    return (
+      <View
+        pointerEvents="box-none"
+        style={[styles.dockOuter, { bottom: bottomOffset }]}
+      >
+        <View
+          style={[
+            styles.wrapper,
+            styles.wrapperTablet,
+            { maxWidth: contentMaxWidth },
+            isDark ? styles.wrapperDark : styles.wrapperLight,
+          ]}
+        >
+          {barBody}
+        </View>
       </View>
+    );
+  }
+
+  return (
+    <View
+      style={[
+        styles.wrapper,
+        styles.wrapperPhone,
+        { bottom: bottomOffset },
+        isDark ? styles.wrapperDark : styles.wrapperLight,
+      ]}
+    >
+      {barBody}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
+  dockOuter: {
     position: "absolute",
-    left: 24,
-    right: 24,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  wrapper: {
     borderRadius: 32,
     borderWidth: StyleSheet.hairlineWidth,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 16,
     elevation: 12,
+  },
+  wrapperPhone: {
+    position: "absolute",
+    left: 24,
+    right: 24,
+  },
+  wrapperTablet: {
+    position: "relative",
+    width: "100%",
   },
   wrapperDark: {
     backgroundColor: "rgba(18, 15, 35, 0.92)",

@@ -1,5 +1,5 @@
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import icons from "@/constants/icons";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { router } from "expo-router";
 import React from "react";
 import { Image, TouchableOpacity } from "react-native";
@@ -10,7 +10,7 @@ const BackButton = () => {
   return (
     <TouchableOpacity
       onPress={() => router.back()}
-      className="p-3 flex-row items-center justify-center rounded-full w-[44px] h-[44px] mb-5"
+      className="p-3 flex-row items-center mt-5 justify-center rounded-full w-[44px] h-[44px] mb-5"
       style={{ backgroundColor: isDark ? "#191919" : "#EDEBF6" }}
     >
       <Image

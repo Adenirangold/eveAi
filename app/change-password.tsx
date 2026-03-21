@@ -1,9 +1,11 @@
 import BackButton from "@/components/BackButton";
+import Background from "@/components/BackGround";
 import FormError from "@/components/FormError";
 import FormTextInput from "@/components/FormTextInput";
 import Header from "@/components/Header";
 import CustomButton from "@/components/custom-button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import { useChangePassword } from "@/hooks/useAuth";
 import { changePasswordSchema } from "@/validation/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,6 +21,7 @@ type ChangePasswordData = z.infer<typeof changePasswordSchema>;
 
 export default function ChangePassword() {
   const isDark = useColorScheme() === "dark";
+  const { isLargeFormFactor, contentMaxWidth } = useResponsiveLayout();
   const changePassword = useChangePassword();
 
   const { control, handleSubmit } = useForm<ChangePasswordData>({
@@ -52,59 +55,74 @@ export default function ChangePassword() {
   };
 
   return (
-    <SafeAreaView
-      className="flex-1 px-5"
-      style={{ backgroundColor: isDark ? "#0A0A0B" : "#F5F3FF" }}
-    >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
+    <Background>
+      <SafeAreaView
+        className="flex-1 px-5"
+        // style={{ backgroundColor: isDark ? "#0A0A0B" : "#F5F3FF" }}
       >
-        <BackButton />
-        <Header
-          title="Change Password"
-          subtitle="Enter your current password and choose a new one."
-        />
-        <ScrollView
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           className="flex-1"
-          showsVerticalScrollIndicator={false}
-          contentContainerClassName="pb-10 flex-grow"
         >
-          <View className="flex-1 gap-5">
-            <FormTextInput
-              control={control}
-              name="currentPassword"
-              label="Current Password"
-              placeholder="Enter your current password"
-              secureTextEntry
+          <View
+            style={
+              isLargeFormFactor && contentMaxWidth != null
+                ? {
+                    flex: 1,
+                    width: "100%",
+                    maxWidth: contentMaxWidth,
+                    alignSelf: "center",
+                  }
+                : { flex: 1 }
+            }
+          >
+            <BackButton />
+            <Header
+              title="Change Password"
+              subtitle="Enter your current password and choose a new one."
             />
-            <FormTextInput
-              control={control}
-              name="newPassword"
-              label="New Password"
-              placeholder="Enter your new password"
-              secureTextEntry
-            />
-            <FormTextInput
-              control={control}
-              name="confirmNewPassword"
-              label="Confirm New Password"
-              placeholder="Confirm your new password"
-              secureTextEntry
-            />
+            <ScrollView
+              className="flex-1"
+              showsVerticalScrollIndicator={false}
+              contentContainerClassName="pb-10 flex-grow"
+            >
+              <View className="flex-1 gap-5">
+                <FormTextInput
+                  control={control}
+                  name="currentPassword"
+                  label="Current Password"
+                  placeholder="Enter your current password"
+                  secureTextEntry
+                />
+                <FormTextInput
+                  control={control}
+                  name="newPassword"
+                  label="New Password"
+                  placeholder="Enter your new password"
+                  secureTextEntry
+                />
+                <FormTextInput
+                  control={control}
+                  name="confirmNewPassword"
+                  label="Confirm New Password"
+                  placeholder="Confirm your new password"
+                  secureTextEntry
+                />
 
-            <View className="mt-6">
-              <FormError message={errorMessage} />
-              <CustomButton
-                title="Update Password"
-                rounded="full"
-                loading={changePassword.isPending}
-                onPress={handleSubmit(onSubmit)}
-              />
-            </View>
+                <View className="mt-6">
+                  <FormError message={errorMessage} />
+                  <CustomButton
+                    title="Update Password"
+                    rounded="full"
+                    loading={changePassword.isPending}
+                    onPress={handleSubmit(onSubmit)}
+                  />
+                </View>
+              </View>
+            </ScrollView>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Background>
   );
 }

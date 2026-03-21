@@ -1,8 +1,10 @@
 import BackButton from "@/components/BackButton";
+import Background from "@/components/BackGround";
 import Header from "@/components/Header";
 import OTPInput from "@/components/OtpInput";
 import CustomButton from "@/components/custom-button";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import { useResetPassword } from "@/hooks/useAuth";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -23,6 +25,7 @@ const RESEND_COOLDOWN = 60;
 const VerifyOTP = () => {
   const { email } = useLocalSearchParams<{ email: string }>();
   const isDark = useColorScheme() === "dark";
+  const { isLargeFormFactor, contentMaxWidth } = useResponsiveLayout();
   const [otp, setOtp] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(RESEND_COOLDOWN);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -98,71 +101,86 @@ const VerifyOTP = () => {
   const subtextColor = isDark ? "#E5E5E5" : "#6B7280";
 
   return (
-    <SafeAreaView
-      className="flex-1 px-5"
-      style={{ backgroundColor: isDark ? "#0A0A0B" : "#F5F3FF" }}
-    >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
+    <Background>
+      <SafeAreaView
+        className="flex-1 px-5"
+        // style={{ backgroundColor: isDark ? "#0A0A0B" : "#F5F3FF" }}
       >
-        <BackButton />
-        <Header
-          title="Verify OTP"
-          subtitle={`Enter the code sent to ${email || "your email"} to verify your email address.`}
-        />
-        <ScrollView
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           className="flex-1"
-          showsVerticalScrollIndicator={false}
-          contentContainerClassName="pb-10 flex-grow"
         >
-          <OTPInput value={otp} onChange={setOtp} />
-
-          <View className="mt-4 flex-row items-center justify-center">
-            <Text
-              className="font-Outfit text-sm"
-              style={{ color: subtextColor }}
-            >
-              Didn't receive the code?{" "}
-            </Text>
-            <Pressable
-              onPress={handleResend}
-              disabled={secondsLeft > 0 || resendMutation.isPending}
-              className="flex-row items-center gap-1.5"
-            >
-              {resendMutation.isPending ? (
-                <>
-                  <ActivityIndicator size="small" color="#6C56FF" />
-                  <Text className="font-OutfitSemiBold text-sm text-primary-primary">
-                    Sending...
-                  </Text>
-                </>
-              ) : (
-                <Text
-                  className={`font-OutfitSemiBold text-sm ${
-                    secondsLeft > 0
-                      ? "text-gray-500"
-                      : "text-primary-primary"
-                  }`}
-                >
-                  {secondsLeft > 0
-                    ? `Resend in ${formatTime(secondsLeft)}`
-                    : "Resend"}
-                </Text>
-              )}
-            </Pressable>
-          </View>
-
-          <View className="mt-10">
-            <CustomButton
-              title="Continue"
-              rounded="full"
-              onPress={handleVerify}
+          <View
+            style={
+              isLargeFormFactor && contentMaxWidth != null
+                ? {
+                    flex: 1,
+                    width: "100%",
+                    maxWidth: contentMaxWidth,
+                    alignSelf: "center",
+                  }
+                : { flex: 1 }
+            }
+          >
+            <BackButton />
+            <Header
+              title="Verify OTP"
+              subtitle={`Enter the code sent to ${email || "your email"} to verify your email address.`}
             />
+            <ScrollView
+              className="flex-1"
+              showsVerticalScrollIndicator={false}
+              contentContainerClassName="pb-10 flex-grow"
+            >
+              <OTPInput value={otp} onChange={setOtp} />
+
+              <View className="mt-4 flex-row items-center justify-center">
+                <Text
+                  className="font-Outfit text-sm"
+                  style={{ color: subtextColor }}
+                >
+                  Didn't receive the code?{" "}
+                </Text>
+                <Pressable
+                  onPress={handleResend}
+                  disabled={secondsLeft > 0 || resendMutation.isPending}
+                  className="flex-row items-center gap-1.5"
+                >
+                  {resendMutation.isPending ? (
+                    <>
+                      <ActivityIndicator size="small" color="#6C56FF" />
+                      <Text className="font-OutfitSemiBold text-sm text-primary-primary">
+                        Sending...
+                      </Text>
+                    </>
+                  ) : (
+                    <Text
+                      className={`font-OutfitSemiBold text-sm ${
+                        secondsLeft > 0
+                          ? "text-gray-500"
+                          : "text-primary-primary"
+                      }`}
+                    >
+                      {secondsLeft > 0
+                        ? `Resend in ${formatTime(secondsLeft)}`
+                        : "Resend"}
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
+
+              <View className="mt-10">
+                <CustomButton
+                  title="Continue"
+                  rounded="full"
+                  onPress={handleVerify}
+                />
+              </View>
+            </ScrollView>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Background>
   );
 };
 

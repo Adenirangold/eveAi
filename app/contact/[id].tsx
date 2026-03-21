@@ -1,6 +1,7 @@
 import Background from "@/components/BackGround";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import { getLocalContactById } from "@/lib/database";
 import { contactsService, type AvailableContact } from "@/services/contacts";
 import { Ionicons } from "@expo/vector-icons";
@@ -33,6 +34,16 @@ export default function ContactProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const isDark = useColorScheme() === "dark";
+  const { isLargeFormFactor, contentMaxWidth } = useResponsiveLayout();
+  const scrollColumnStyle =
+    isLargeFormFactor && contentMaxWidth != null
+      ? {
+          flex: 1,
+          width: "100%" as const,
+          maxWidth: contentMaxWidth,
+          alignSelf: "center" as const,
+        }
+      : { flex: 1 };
 
   const localContact = useMemo(
     () => (id ? getLocalContactById(id) : null),
@@ -50,101 +61,105 @@ export default function ContactProfileScreen() {
 
   return (
     <Background>
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="chevron-back" size={24} color={iconColor} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: iconColor }]}>Profile</Text>
-        <View style={styles.backButton} />
-      </View>
-
-      {isPending ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6C56FF" />
-        </View>
-      ) : contact ? (
-        <View style={styles.content}>
-          <View style={styles.avatarSection}>
-            {contact.avatar ? (
-              <ExpoImage
-                source={contact.avatar}
-                style={[
-                  styles.avatar,
-                  { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
-                ]}
-                contentFit="cover"
-              />
-            ) : (
-              <View
-                style={[
-                  styles.avatarFallback,
-                  { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
-                ]}
-              >
-                <Ionicons
-                  name="person"
-                  size={40}
-                  color={isDark ? "#fff" : "#6C56FF"}
-                />
-              </View>
-            )}
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text
-                style={[styles.name, { color: isDark ? "#fff" : "#1A1A2E" }]}
-              >
-                {contact.name}
-              </Text>
-              {contact.isPremium && <VerifiedBadge size={20} />}
-            </View>
-            <Text style={styles.slug}>@{contact.slug}</Text>
-          </View>
-
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: isDark ? "#1C1C2E" : "#FFFFFF" },
-              !isDark && {
-                borderWidth: 1,
-                borderColor: "#E0DCF0",
-              },
-            ]}
+      <View style={scrollColumnStyle}>
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            activeOpacity={0.7}
           >
-            <Text
+            <Ionicons name="chevron-back" size={24} color={iconColor} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: iconColor }]}>Profile</Text>
+          <View style={styles.backButton} />
+        </View>
+
+        {isPending ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#6C56FF" />
+          </View>
+        ) : contact ? (
+          <View style={styles.content}>
+            <View style={styles.avatarSection}>
+              {contact.avatar ? (
+                <ExpoImage
+                  source={contact.avatar}
+                  style={[
+                    styles.avatar,
+                    { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+                  ]}
+                  contentFit="cover"
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.avatarFallback,
+                    { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+                  ]}
+                >
+                  <Ionicons
+                    name="person"
+                    size={40}
+                    color={isDark ? "#fff" : "#6C56FF"}
+                  />
+                </View>
+              )}
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text
+                  style={[styles.name, { color: isDark ? "#fff" : "#1A1A2E" }]}
+                >
+                  {contact.name}
+                </Text>
+                {contact.isPremium && <VerifiedBadge size={20} />}
+              </View>
+              <Text style={styles.slug}>@{contact.slug}</Text>
+            </View>
+
+            <View
               style={[
-                styles.cardLabel,
-                {
-                  color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)",
+                styles.card,
+                { backgroundColor: isDark ? "#1C1C2E" : "#FFFFFF" },
+                !isDark && {
+                  borderWidth: 1,
+                  borderColor: "#E0DCF0",
                 },
               ]}
             >
-              Bio
-            </Text>
-            <Text
-              style={[
-                styles.cardBio,
-                { color: isDark ? "#E8E8E8" : "#374151" },
-              ]}
-            >
-              {contact.bio}
-            </Text>
-          </View>
+              <Text
+                style={[
+                  styles.cardLabel,
+                  {
+                    color: isDark
+                      ? "rgba(255,255,255,0.5)"
+                      : "rgba(0,0,0,0.4)",
+                  },
+                ]}
+              >
+                Bio
+              </Text>
+              <Text
+                style={[
+                  styles.cardBio,
+                  { color: isDark ? "#E8E8E8" : "#374151" },
+                ]}
+              >
+                {contact.bio}
+              </Text>
+            </View>
 
-          <TouchableOpacity
-            style={styles.messageButton}
-            activeOpacity={0.7}
-            onPress={() => {
-              router.back();
-            }}
-          >
-            <Ionicons name="chatbubble-ellipses" size={20} color="#fff" />
-            <Text style={styles.messageButtonText}>Send Message</Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
+            <TouchableOpacity
+              style={styles.messageButton}
+              activeOpacity={0.7}
+              onPress={() => {
+                router.back();
+              }}
+            >
+              <Ionicons name="chatbubble-ellipses" size={20} color="#fff" />
+              <Text style={styles.messageButtonText}>Send Message</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+      </View>
     </Background>
   );
 }

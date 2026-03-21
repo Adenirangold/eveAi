@@ -1,4 +1,5 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import CustomInput from "@/components/CustomInput";
 import { REELS_QUERY_KEY } from "@/hooks/useReels";
 import { STORIES_QUERY_KEY } from "@/hooks/useStories";
@@ -140,6 +141,16 @@ export default function AddContactsContent({
   onClose?: () => void;
 }) {
   const isDark = useColorScheme() === "dark";
+  const { isLargeFormFactor, contentMaxWidth } = useResponsiveLayout();
+  const scrollColumnStyle =
+    isLargeFormFactor && contentMaxWidth != null
+      ? {
+          flex: 1,
+          width: "100%" as const,
+          maxWidth: contentMaxWidth,
+          alignSelf: "center" as const,
+        }
+      : { flex: 1 };
   const queryClient = useQueryClient();
   const [addingIds, setAddingIds] = useState<Set<string>>(new Set());
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
@@ -196,65 +207,73 @@ export default function AddContactsContent({
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={onClose}
-          activeOpacity={0.7}
-        >
-          <Ionicons
-            name="chevron-down"
-            size={28}
-            color={isDark ? "#fff" : "#1A1A2E"}
-          />
-        </TouchableOpacity>
-        <Text style={[styles.title, { color: isDark ? "#fff" : "#1A1A2E" }]}>
-          Add Characters
-        </Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      {contacts.length > 0 && (
-        <View style={styles.searchContainer}>
-          <CustomInput
-            value={search}
-            onChangeText={setSearch}
-            search
-            placeholder="Search"
-            backgroundColor={isDark ? "#1D1B31" : "#F0EEF9"}
-            borderColor={isDark ? "#262626" : "#E0DCF0"}
-            borderRadius={15}
-          />
-        </View>
-      )}
-
-      {loading ? (
-        <ContactSkeleton />
-      ) : (
-        <BottomSheetFlatList
-          data={filteredContacts}
-          keyExtractor={(item: AvailableContact) => item.id}
-          renderItem={({ item }: { item: AvailableContact }) => (
-            <ContactRow
-              item={item}
-              onAdd={handleAdd}
-              adding={addingIds.has(item.id)}
-              added={addedIds.has(item.id)}
+      <View style={scrollColumnStyle}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={onClose}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="chevron-down"
+              size={28}
+              color={isDark ? "#fff" : "#1A1A2E"}
             />
-          )}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <Text
-              style={[styles.emptyText, { color: isDark ? "#888" : "#6B7280" }]}
-            >
-              {contactsError
-                ? "Unable to load characters. Check your connection."
-                : "No characters available"}
-            </Text>
-          }
-        />
-      )}
+          </TouchableOpacity>
+          <Text style={[styles.title, { color: isDark ? "#fff" : "#1A1A2E" }]}>
+            Add Characters
+          </Text>
+          <View style={styles.headerSpacer} />
+        </View>
+
+        {contacts.length > 0 && (
+          <View style={styles.searchContainer}>
+            <CustomInput
+              value={search}
+              onChangeText={setSearch}
+              search
+              placeholder="Search"
+              backgroundColor={isDark ? "#1D1B31" : "#F0EEF9"}
+              borderColor={isDark ? "#262626" : "#E0DCF0"}
+              borderRadius={15}
+            />
+          </View>
+        )}
+
+        {loading ? (
+          <View style={{ flex: 1 }}>
+            <ContactSkeleton />
+          </View>
+        ) : (
+          <BottomSheetFlatList
+            style={{ flex: 1 }}
+            data={filteredContacts}
+            keyExtractor={(item: AvailableContact) => item.id}
+            renderItem={({ item }: { item: AvailableContact }) => (
+              <ContactRow
+                item={item}
+                onAdd={handleAdd}
+                adding={addingIds.has(item.id)}
+                added={addedIds.has(item.id)}
+              />
+            )}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <Text
+                style={[
+                  styles.emptyText,
+                  { color: isDark ? "#888" : "#6B7280" },
+                ]}
+              >
+                {contactsError
+                  ? "Unable to load characters. Check your connection."
+                  : "No characters available"}
+              </Text>
+            }
+          />
+        )}
+      </View>
     </SafeAreaView>
   );
 }

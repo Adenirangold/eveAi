@@ -1,15 +1,13 @@
 import Background from "@/components/BackGround";
+import CustomInput from "@/components/CustomInput";
 import StoryViewer from "@/components/StoryViewer";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import StoriesSkeleton from "@/components/skeleton/StoriesSkeleton";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import {
-  getViewedStoryIds,
-  markStoryViewed,
-} from "@/lib/database";
-import type { Story } from "@/services/stories";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import { useStories } from "@/hooks/useStories";
-import CustomInput from "@/components/CustomInput";
+import { getViewedStoryIds, markStoryViewed } from "@/lib/database";
+import type { Story } from "@/services/stories";
 import { Ionicons } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -109,7 +107,11 @@ function StoryRow({
                 { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
               ]}
             >
-              <Ionicons name="person" size={20} color={isDark ? "#fff" : "#6C56FF"} />
+              <Ionicons
+                name="person"
+                size={20}
+                color={isDark ? "#fff" : "#6C56FF"}
+              />
             </View>
           )}
         </View>
@@ -135,10 +137,22 @@ function StoryRow({
 
 export default function StoryTab() {
   const isDark = useColorScheme() === "dark";
+  const { isLargeFormFactor, contentMaxWidth } = useResponsiveLayout();
+  const scrollColumnStyle =
+    isLargeFormFactor && contentMaxWidth != null
+      ? {
+          flex: 1,
+          width: "100%" as const,
+          maxWidth: contentMaxWidth,
+          alignSelf: "center" as const,
+        }
+      : { flex: 1 };
   const [search, setSearch] = useState("");
   const [viewerVisible, setViewerVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [viewedIds, setViewedIds] = useState<Set<string>>(() => getViewedStoryIds());
+  const [viewedIds, setViewedIds] = useState<Set<string>>(() =>
+    getViewedStoryIds(),
+  );
   const [viewedCollapsed, setViewedCollapsed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -169,7 +183,8 @@ export default function StoryTab() {
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     recent.sort(byNewest);
     viewed.sort(byNewest);
-    const result: { title: string; data: Story[]; collapsible?: boolean }[] = [];
+    const result: { title: string; data: Story[]; collapsible?: boolean }[] =
+      [];
     if (recent.length > 0) result.push({ title: "Recent story", data: recent });
     if (viewed.length > 0)
       result.push({
@@ -206,100 +221,101 @@ export default function StoryTab() {
   return (
     <Background>
       <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <Text
-            style={[styles.title, { color: isDark ? "#fff" : "#1A1A2E" }]}
-          >
-            Stories
-          </Text>
-          {stories.length > 0 && (
-            <CustomInput
-              value={search}
-              onChangeText={setSearch}
-              search
-              placeholder="Search"
-              backgroundColor={isDark ? "#1D1B31" : "#F0EEF9"}
-              borderColor={isDark ? "#262626" : "#E0DCF0"}
-              borderRadius={15}
+        <View style={scrollColumnStyle}>
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: isDark ? "#fff" : "#1A1A2E" }]}>
+              Stories
+            </Text>
+            {stories.length > 0 && (
+              <CustomInput
+                value={search}
+                onChangeText={setSearch}
+                search
+                placeholder="Search"
+                backgroundColor={isDark ? "#1D1B31" : "#F0EEF9"}
+                borderColor={isDark ? "#262626" : "#E0DCF0"}
+                borderRadius={15}
+              />
+            )}
+          </View>
+
+          {loading ? (
+            <StoriesSkeleton />
+          ) : stories.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons
+                name="book-outline"
+                size={48}
+                color={isDark ? "#333" : "#C4B5FD"}
+              />
+              <Text
+                style={[
+                  styles.emptyText,
+                  { color: isDark ? "#888" : "#6B7280" },
+                ]}
+              >
+                No stories yet
+              </Text>
+            </View>
+          ) : (
+            <SectionList
+              style={{ flex: 1 }}
+              sections={sections}
+              keyExtractor={(item) => item.id}
+              renderSectionHeader={({ section }) => (
+                <TouchableOpacity
+                  activeOpacity={section.collapsible ? 0.6 : 1}
+                  onPress={() => {
+                    if (section.collapsible) setViewedCollapsed((v) => !v);
+                  }}
+                  style={styles.sectionHeader}
+                >
+                  <Text
+                    style={[
+                      styles.sectionTitle,
+                      { color: isDark ? "#999" : "#6B7280" },
+                    ]}
+                  >
+                    {section.title}
+                  </Text>
+                  {section.collapsible && (
+                    <Ionicons
+                      name={viewedCollapsed ? "chevron-up" : "chevron-down"}
+                      size={16}
+                      color={isDark ? "#999" : "#6B7280"}
+                    />
+                  )}
+                </TouchableOpacity>
+              )}
+              renderItem={({ item }) => (
+                <StoryRow
+                  item={item}
+                  viewed={viewedIds.has(item.id)}
+                  onPress={() => openStory(item)}
+                />
+              )}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              stickySectionHeadersEnabled={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={async () => {
+                    setRefreshing(true);
+                    try {
+                      await refetch();
+                    } finally {
+                      setRefreshing(false);
+                    }
+                  }}
+                  tintColor={isDark ? "#A78BFA" : "#1A1A2E"}
+                  colors={[isDark ? "#A78BFA" : "#1A1A2E"]}
+                  progressBackgroundColor={isDark ? "#1E1740" : "#FFFFFF"}
+                />
+              }
             />
           )}
         </View>
-
-        {loading ? (
-          <StoriesSkeleton />
-        ) : stories.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons
-              name="book-outline"
-              size={48}
-              color={isDark ? "#333" : "#C4B5FD"}
-            />
-            <Text
-              style={[
-                styles.emptyText,
-                { color: isDark ? "#888" : "#6B7280" },
-              ]}
-            >
-              No stories yet
-            </Text>
-          </View>
-        ) : (
-          <SectionList
-            sections={sections}
-            keyExtractor={(item) => item.id}
-            renderSectionHeader={({ section }) => (
-              <TouchableOpacity
-                activeOpacity={section.collapsible ? 0.6 : 1}
-                onPress={() => {
-                  if (section.collapsible) setViewedCollapsed((v) => !v);
-                }}
-                style={styles.sectionHeader}
-              >
-                <Text
-                  style={[
-                    styles.sectionTitle,
-                    { color: isDark ? "#999" : "#6B7280" },
-                  ]}
-                >
-                  {section.title}
-                </Text>
-                {section.collapsible && (
-                  <Ionicons
-                    name={viewedCollapsed ? "chevron-up" : "chevron-down"}
-                    size={16}
-                    color={isDark ? "#999" : "#6B7280"}
-                  />
-                )}
-              </TouchableOpacity>
-            )}
-            renderItem={({ item }) => (
-              <StoryRow
-                item={item}
-                viewed={viewedIds.has(item.id)}
-                onPress={() => openStory(item)}
-              />
-            )}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            stickySectionHeadersEnabled={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={async () => {
-                  setRefreshing(true);
-                  try {
-                    await refetch();
-                  } finally {
-                    setRefreshing(false);
-                  }
-                }}
-                tintColor={isDark ? "#A78BFA" : "#1A1A2E"}
-                colors={[isDark ? "#A78BFA" : "#1A1A2E"]}
-                progressBackgroundColor={isDark ? "#1E1740" : "#FFFFFF"}
-              />
-            }
-          />
-        )}
 
         <StoryViewer
           stories={stories}
