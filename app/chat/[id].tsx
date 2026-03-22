@@ -1,6 +1,7 @@
 import BibleRefModal from "@/components/BibleRefModal";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import { invalidateUnreadSummary } from "@/hooks/useUnreadSummary";
 import { setActiveChatId } from "@/lib/active-chat";
 import { formatRefLabel } from "@/lib/bible";
@@ -58,8 +59,10 @@ const DRAFT_KEY_PREFIX = "chat_draft_";
 const getDraftKey = (chatId: string) => `${DRAFT_KEY_PREFIX}${chatId}`;
 
 const BUBBLE_AVATAR_SIZE = 25;
+const BUBBLE_AVATAR_SIZE_LARGE = 32;
 
 const AVATAR_SIZE = 38;
+const AVATAR_SIZE_LARGE = 46;
 
 function getInitials(name: string): string {
   return name
@@ -94,13 +97,14 @@ function toGiftedMessages(
     .reverse();
 }
 
-const TypingIndicator = React.memo(() => {
-  const isDark = useColorScheme() === "dark";
-  const dot1 = useRef(new Animated.Value(0.3)).current;
-  const dot2 = useRef(new Animated.Value(0.3)).current;
-  const dot3 = useRef(new Animated.Value(0.3)).current;
+const TypingIndicator = React.memo(
+  ({ isLargeFormFactor = false }: { isLargeFormFactor?: boolean }) => {
+    const isDark = useColorScheme() === "dark";
+    const dot1 = useRef(new Animated.Value(0.3)).current;
+    const dot2 = useRef(new Animated.Value(0.3)).current;
+    const dot3 = useRef(new Animated.Value(0.3)).current;
 
-  useEffect(() => {
+    useEffect(() => {
     const animateDot = (dot: Animated.Value, delay: number) =>
       Animated.loop(
         Animated.sequence([
@@ -132,21 +136,35 @@ const TypingIndicator = React.memo(() => {
     };
   }, [dot1, dot2, dot3]);
 
-  return (
-    <View style={styles.typingRow}>
-      <View
-        style={[
-          styles.typingBubble,
-          { backgroundColor: isDark ? "#1C1C2E" : "#EDEBF6" },
-        ]}
-      >
-        {[dot1, dot2, dot3].map((dot, i) => (
-          <Animated.View key={i} style={[styles.typingDot, { opacity: dot }]} />
-        ))}
+    const avatarSize = isLargeFormFactor ? BUBBLE_AVATAR_SIZE_LARGE : BUBBLE_AVATAR_SIZE;
+
+    return (
+      <View style={[styles.typingRow, { paddingLeft: 10 + avatarSize + 4 }]}>
+        <View
+          style={[
+            styles.typingBubble,
+            {
+              backgroundColor: isDark ? "#1C1C2E" : "#EDEBF6",
+              paddingHorizontal: isLargeFormFactor ? 18 : 14,
+              paddingVertical: isLargeFormFactor ? 14 : 12,
+              borderRadius: isLargeFormFactor ? 20 : 18,
+            },
+          ]}
+        >
+          {[dot1, dot2, dot3].map((dot, i) => (
+            <Animated.View
+              key={i}
+              style={[
+                styles.typingDot,
+                { opacity: dot, width: isLargeFormFactor ? 8 : 6, height: isLargeFormFactor ? 8 : 6, borderRadius: isLargeFormFactor ? 4 : 3, marginHorizontal: isLargeFormFactor ? 4 : 3 },
+              ]}
+            />
+          ))}
+        </View>
       </View>
-    </View>
-  );
-});
+    );
+  },
+);
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -155,6 +173,7 @@ export default function ChatScreen() {
   const user = useAuthStore((s) => s.user);
   const insets = useSafeAreaInsets();
   const isDark = useColorScheme() === "dark";
+  const { isLargeFormFactor } = useResponsiveLayout();
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -474,30 +493,49 @@ export default function ChatScreen() {
               <Bubble
                 {...props}
                 wrapperStyle={{
-                  right: styles.bubbleRight,
+                  right: {
+                    ...styles.bubbleRight,
+                    paddingHorizontal: isLargeFormFactor ? 16 : 14,
+                    paddingVertical: isLargeFormFactor ? 10 : 8,
+                    borderRadius: isLargeFormFactor ? 20 : 18,
+                    borderBottomRightRadius: 4,
+                  },
                   left: {
                     ...styles.bubbleLeft,
                     backgroundColor: isDark ? "#1C1C2E" : "#EDEBF6",
+                    paddingHorizontal: isLargeFormFactor ? 16 : 14,
+                    paddingVertical: isLargeFormFactor ? 10 : 8,
+                    borderRadius: isLargeFormFactor ? 20 : 18,
+                    borderBottomLeftRadius: 4,
                   },
                 }}
                 textStyle={{
-                  right: styles.bubbleTextRight as TextStyle,
+                  right: {
+                    ...(styles.bubbleTextRight as TextStyle),
+                    fontSize: isLargeFormFactor ? 17 : 16,
+                    lineHeight: isLargeFormFactor ? 28 : 26,
+                  },
                   left: {
                     ...(styles.bubbleTextLeft as TextStyle),
                     color: isDark ? "#E8E8E8" : "#1A1A2E",
+                    fontSize: isLargeFormFactor ? 17 : 16,
+                    lineHeight: isLargeFormFactor ? 28 : 26,
                   },
                 }}
                 tickStyle={{ color: "#6C56FF" }}
                 renderTicks={() => {
                   if (!msg || msg.user?._id !== 1) return null;
 
+                  const tickSize = isLargeFormFactor ? 16 : 14;
+                  const tickMargin = { marginRight: 2, marginBottom: 2 };
+
                   if (msg.status === "pending") {
                     return (
                       <Ionicons
                         name="time-outline"
-                        size={14}
+                        size={tickSize}
                         color={isDark ? "#D1D5DB" : "#E5E7EB"}
-                        style={{ marginRight: 2, marginBottom: 2 }}
+                        style={tickMargin}
                       />
                     );
                   }
@@ -506,9 +544,9 @@ export default function ChatScreen() {
                     return (
                       <Ionicons
                         name="checkmark"
-                        size={14}
+                        size={tickSize}
                         color="#E5E7EB"
-                        style={{ marginRight: 2, marginBottom: 2 }}
+                        style={tickMargin}
                       />
                     );
                   }
@@ -517,9 +555,9 @@ export default function ChatScreen() {
                     return (
                       <Ionicons
                         name="checkmark-done"
-                        size={14}
+                        size={tickSize}
                         color="#E5E7EB"
-                        style={{ marginRight: 2, marginBottom: 2 }}
+                        style={tickMargin}
                       />
                     );
                   }
@@ -528,9 +566,9 @@ export default function ChatScreen() {
                     return (
                       <Ionicons
                         name="information-circle-outline"
-                        size={14}
+                        size={tickSize}
                         color="#F87171"
-                        style={{ marginRight: 2, marginBottom: 2 }}
+                        style={tickMargin}
                       />
                     );
                   }
@@ -563,7 +601,7 @@ export default function ChatScreen() {
                     >
                       <Ionicons
                         name="ellipsis-vertical"
-                        size={18}
+                        size={isLargeFormFactor ? 20 : 18}
                         color={isDark ? "#E8E8E8" : "#6B7280"}
                       />
                     </TouchableOpacity>
@@ -626,18 +664,23 @@ export default function ChatScreen() {
                       backgroundColor: isDark
                         ? "rgba(255,255,255,0.08)"
                         : "rgba(108,86,255,0.1)",
+                      paddingHorizontal: isLargeFormFactor ? 12 : 10,
+                      paddingVertical: isLargeFormFactor ? 6 : 5,
                     },
                   ]}
                 >
                   <Ionicons
                     name="book-outline"
-                    size={11}
+                    size={isLargeFormFactor ? 12 : 11}
                     color={isDark ? "#8B7FFF" : "#6C56FF"}
                   />
                   <Text
                     style={[
                       styles.refChipText,
-                      { color: isDark ? "#8B7FFF" : "#6C56FF" },
+                      {
+                        color: isDark ? "#8B7FFF" : "#6C56FF",
+                        fontSize: isLargeFormFactor ? 13 : 12,
+                      },
                     ]}
                   >
                     {formatRefLabel(ref)}
@@ -649,43 +692,46 @@ export default function ChatScreen() {
         </View>
       );
     },
-    [isDark, activeMessageMenuId],
+    [isDark, activeMessageMenuId, isLargeFormFactor],
   );
+
+  const bubbleAvatarSize = isLargeFormFactor ? BUBBLE_AVATAR_SIZE_LARGE : BUBBLE_AVATAR_SIZE;
 
   const renderAvatar = useCallback(
     (props: any) => {
       const avatarUri = contact?.avatar;
       if (props.currentMessage?.user?._id === 1) return null;
 
+      const avatarStyle = {
+        width: bubbleAvatarSize,
+        height: bubbleAvatarSize,
+        borderRadius: bubbleAvatarSize / 2,
+        backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5",
+        marginRight: 4,
+        marginBottom: 2,
+      };
+
       if (avatarUri) {
         return (
           <ExpoImage
             source={avatarUri}
-            style={[
-              styles.bubbleAvatar,
-              { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
-            ]}
+            style={avatarStyle}
             contentFit="cover"
           />
         );
       }
 
       return (
-        <View
-          style={[
-            styles.bubbleAvatarFallback,
-            { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
-          ]}
-        >
+        <View style={[styles.bubbleAvatarFallback, avatarStyle]}>
           <Ionicons
             name="person"
-            size={14}
+            size={isLargeFormFactor ? 16 : 14}
             color={isDark ? "#fff" : "#6C56FF"}
           />
         </View>
       );
     },
-    [contact, isDark],
+    [contact, isDark, isLargeFormFactor, bubbleAvatarSize],
   );
 
   const renderInputToolbar = useCallback(() => {
@@ -694,6 +740,8 @@ export default function ChatScreen() {
         style={[
           styles.customInputWrapper,
           {
+            paddingHorizontal: isLargeFormFactor ? 20 : 14,
+            paddingTop: isLargeFormFactor ? 12 : 8,
             paddingBottom: Math.max(insets.bottom, 8) + 5,
             backgroundColor: isDark ? "#111114" : "#F5F3FF",
           },
@@ -702,7 +750,12 @@ export default function ChatScreen() {
         <View
           style={[
             styles.inputRow,
-            { backgroundColor: isDark ? "#1C1C2E" : "#FFFFFF" },
+            {
+              backgroundColor: isDark ? "#1C1C2E" : "#FFFFFF",
+              paddingHorizontal: isLargeFormFactor ? 22 : 18,
+              minHeight: isLargeFormFactor ? 56 : 50,
+              borderRadius: isLargeFormFactor ? 30 : 28,
+            },
             !isDark && {
               borderWidth: 1,
               borderColor: "#E0DCF0",
@@ -711,7 +764,13 @@ export default function ChatScreen() {
         >
           <TextInput
             ref={inputRef}
-            style={[styles.textInput, { color: isDark ? "#fff" : "#1A1A2E" }]}
+            style={[
+              styles.textInput,
+              {
+                color: isDark ? "#fff" : "#1A1A2E",
+                fontSize: isLargeFormFactor ? 17 : 16,
+              },
+            ]}
             placeholder="Write your message"
             placeholderTextColor={isDark ? "#666" : "#9CA3AF"}
             value={inputText}
@@ -726,19 +785,23 @@ export default function ChatScreen() {
             onPress={handleSend}
             activeOpacity={0.7}
             hitSlop={8}
-            style={styles.sendButton}
+            style={[styles.sendButton, isLargeFormFactor && { padding: 8 }]}
           >
-            <Ionicons name="send" size={20} color="#6C56FF" />
+            <Ionicons
+              name="send"
+              size={isLargeFormFactor ? 22 : 20}
+              color="#6C56FF"
+            />
           </TouchableOpacity>
         </View>
       </View>
     );
-  }, [inputText, handleSend, handleTextChange, insets.bottom, isDark]);
+  }, [inputText, handleSend, handleTextChange, insets.bottom, isDark, isLargeFormFactor]);
 
   const renderFooter = useCallback(() => {
     if (!isSending) return null;
-    return <TypingIndicator />;
-  }, [isSending]);
+    return <TypingIndicator isLargeFormFactor={isLargeFormFactor} />;
+  }, [isSending, isLargeFormFactor]);
 
   const chatUser = useMemo(
     () => ({ _id: 1, name: user?.name ?? "Me" }),
@@ -754,8 +817,10 @@ export default function ChatScreen() {
       <View
         style={[
           styles.header,
-          { paddingTop: insets.top + 10 },
           {
+            paddingTop: insets.top + (isLargeFormFactor ? 14 : 10),
+            paddingHorizontal: isLargeFormFactor ? 20 : 12,
+            paddingVertical: isLargeFormFactor ? 14 : 10,
             backgroundColor: isDark ? "#111114" : "#FFFFFF",
             borderBottomColor: isDark
               ? "rgba(255,255,255,0.06)"
@@ -765,15 +830,19 @@ export default function ChatScreen() {
       >
         <TouchableOpacity
           onPress={() => router.back()}
-          style={styles.backButton}
+          style={[styles.backButton, isLargeFormFactor && { padding: 8, marginRight: 12 }]}
           activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={24} color={iconColor} />
+          <Ionicons
+            name="chevron-back"
+            size={isLargeFormFactor ? 28 : 24}
+            color={iconColor}
+          />
         </TouchableOpacity>
 
         {contact && (
           <TouchableOpacity
-            style={styles.headerInfo}
+            style={[styles.headerInfo, isLargeFormFactor && { gap: 14 }]}
             activeOpacity={0.7}
             onPress={() => router.push(`/contact/${id}`)}
           >
@@ -782,7 +851,12 @@ export default function ChatScreen() {
                 source={contact.avatar}
                 style={[
                   styles.avatar,
-                  { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+                  {
+                    width: isLargeFormFactor ? AVATAR_SIZE_LARGE : AVATAR_SIZE,
+                    height: isLargeFormFactor ? AVATAR_SIZE_LARGE : AVATAR_SIZE,
+                    borderRadius: isLargeFormFactor ? AVATAR_SIZE_LARGE / 2 : AVATAR_SIZE / 2,
+                    backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5",
+                  },
                 ]}
                 contentFit="cover"
               />
@@ -790,12 +864,17 @@ export default function ChatScreen() {
               <View
                 style={[
                   styles.initialsAvatar,
-                  { backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5" },
+                  {
+                    width: isLargeFormFactor ? AVATAR_SIZE_LARGE : AVATAR_SIZE,
+                    height: isLargeFormFactor ? AVATAR_SIZE_LARGE : AVATAR_SIZE,
+                    borderRadius: isLargeFormFactor ? AVATAR_SIZE_LARGE / 2 : AVATAR_SIZE / 2,
+                    backgroundColor: isDark ? "#1C1C2E" : "#E8E5F5",
+                  },
                 ]}
               >
                 <Ionicons
                   name="person"
-                  size={18}
+                  size={isLargeFormFactor ? 22 : 18}
                   color={isDark ? "#fff" : "#6C56FF"}
                 />
               </View>
@@ -805,14 +884,17 @@ export default function ChatScreen() {
                 <Text
                   style={[
                     styles.headerName,
-                    { color: isDark ? "#fff" : "#1A1A2E" },
+                    {
+                      color: isDark ? "#fff" : "#1A1A2E",
+                      fontSize: isLargeFormFactor ? 18 : 16,
+                    },
                   ]}
                 >
                   {contact.name}
                 </Text>
-                {contact.isPremium && <VerifiedBadge size={16} />}
+                {contact.isPremium && <VerifiedBadge size={isLargeFormFactor ? 18 : 16} />}
               </View>
-              <Text style={styles.headerStatus}>
+              <Text style={[styles.headerStatus, isLargeFormFactor && { fontSize: 15 }]}>
                 {(() => {
                   if (isSending) {
                     return "Typing...";
@@ -887,10 +969,14 @@ export default function ChatScreen() {
         <View style={styles.menuWrapper}>
           <TouchableOpacity
             onPress={() => setMenuVisible((v) => !v)}
-            style={styles.menuButton}
+            style={[styles.menuButton, isLargeFormFactor && { padding: 10 }]}
             activeOpacity={0.7}
           >
-            <Ionicons name="ellipsis-horizontal" size={20} color={iconColor} />
+            <Ionicons
+              name="ellipsis-horizontal"
+              size={isLargeFormFactor ? 24 : 20}
+              color={iconColor}
+            />
           </TouchableOpacity>
 
           {menuVisible && (

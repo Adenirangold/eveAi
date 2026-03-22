@@ -1,9 +1,9 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import { BibleVerse, lookupVerses } from "@/lib/bible";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
 import {
-  Dimensions,
   Modal,
   ScrollView,
   StyleSheet,
@@ -11,8 +11,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 
 interface BibleRefModalProps {
   visible: boolean;
@@ -26,6 +24,14 @@ export default function BibleRefModal({
   refs,
 }: BibleRefModalProps) {
   const isDark = useColorScheme() === "dark";
+  const { windowWidth, windowHeight, isLargeFormFactor, contentMaxWidth } =
+    useResponsiveLayout();
+
+  const cardWidth =
+    isLargeFormFactor && contentMaxWidth != null
+      ? Math.min(contentMaxWidth, windowWidth * 0.9)
+      : windowWidth * 0.85;
+  const maxCardHeight = windowHeight * 0.6;
 
   const verses: BibleVerse[] = useMemo(() => {
     if (refs.length === 0) return [];
@@ -45,22 +51,38 @@ export default function BibleRefModal({
           style={[
             styles.card,
             {
+              width: cardWidth,
+              maxHeight: maxCardHeight,
               backgroundColor: isDark ? "#1C1C2E" : "#FFFFFF",
               shadowOpacity: isDark ? 0.5 : 0.18,
+              paddingTop: isLargeFormFactor ? 22 : 18,
+              paddingBottom: isLargeFormFactor ? 10 : 6,
+              borderRadius: isLargeFormFactor ? 24 : 20,
             },
           ]}
         >
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
+          <View
+            style={[
+              styles.header,
+              {
+                paddingHorizontal: isLargeFormFactor ? 24 : 20,
+                paddingBottom: isLargeFormFactor ? 18 : 14,
+              },
+            ]}
+          >
+            <View style={[styles.headerLeft, isLargeFormFactor && { gap: 10 }]}>
               <Ionicons
                 name="book"
-                size={18}
+                size={isLargeFormFactor ? 22 : 18}
                 color={isDark ? "#8B7FFF" : "#6C56FF"}
               />
               <Text
                 style={[
                   styles.headerTitle,
-                  { color: isDark ? "#fff" : "#1A1A2E" },
+                  {
+                    color: isDark ? "#fff" : "#1A1A2E",
+                    fontSize: isLargeFormFactor ? 19 : 17,
+                  },
                 ]}
               >
                 Scripture Reference
@@ -69,11 +91,11 @@ export default function BibleRefModal({
             <TouchableOpacity
               onPress={onClose}
               activeOpacity={0.7}
-              hitSlop={10}
+              hitSlop={isLargeFormFactor ? 12 : 10}
             >
               <Ionicons
                 name="close"
-                size={22}
+                size={isLargeFormFactor ? 26 : 22}
                 color={isDark ? "#888" : "#9CA3AF"}
               />
             </TouchableOpacity>
@@ -82,13 +104,23 @@ export default function BibleRefModal({
           <View
             style={[
               styles.divider,
-              { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#F0EEF9" },
+              {
+                backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#F0EEF9",
+                marginHorizontal: isLargeFormFactor ? 20 : 16,
+              },
             ]}
           />
 
           <ScrollView
             style={styles.scrollArea}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              {
+                paddingHorizontal: isLargeFormFactor ? 24 : 20,
+                paddingTop: isLargeFormFactor ? 20 : 16,
+                paddingBottom: isLargeFormFactor ? 22 : 18,
+              },
+            ]}
             showsVerticalScrollIndicator={false}
             nestedScrollEnabled
           >
@@ -96,7 +128,11 @@ export default function BibleRefModal({
               <Text
                 style={[
                   styles.notFound,
-                  { color: isDark ? "#666" : "#9CA3AF" },
+                  {
+                    color: isDark ? "#666" : "#9CA3AF",
+                    fontSize: isLargeFormFactor ? 15 : 14,
+                    paddingVertical: isLargeFormFactor ? 24 : 20,
+                  },
                 ]}
               >
                 Unable to get Bible verse. Visit bible.org
@@ -107,13 +143,19 @@ export default function BibleRefModal({
                   key={v.ref}
                   style={[
                     styles.verseBlock,
-                    idx < verses.length - 1 && styles.verseBlockSpacing,
+                    idx < verses.length - 1 && {
+                      marginBottom: isLargeFormFactor ? 24 : 20,
+                    },
                   ]}
                 >
                   <Text
                     style={[
                       styles.verseRef,
-                      { color: isDark ? "#8B7FFF" : "#6C56FF" },
+                      {
+                        color: isDark ? "#8B7FFF" : "#6C56FF",
+                        fontSize: isLargeFormFactor ? 15 : 14,
+                        marginBottom: isLargeFormFactor ? 8 : 6,
+                      },
                     ]}
                   >
                     {v.ref}
@@ -121,7 +163,11 @@ export default function BibleRefModal({
                   <Text
                     style={[
                       styles.verseText,
-                      { color: isDark ? "#D4D4D4" : "#374151" },
+                      {
+                        color: isDark ? "#D4D4D4" : "#374151",
+                        fontSize: isLargeFormFactor ? 16 : 15,
+                        lineHeight: isLargeFormFactor ? 26 : 23,
+                      },
                     ]}
                   >
                     {v.text}
@@ -144,11 +190,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   card: {
-    width: SCREEN_W * 0.85,
-    maxHeight: SCREEN_H * 0.6,
-    borderRadius: 20,
-    paddingTop: 18,
-    paddingBottom: 6,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 24,
@@ -158,8 +199,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
   },
   headerLeft: {
     flexDirection: "row",
@@ -173,20 +212,12 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    marginHorizontal: 16,
   },
   scrollArea: {
     flexShrink: 1,
   },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 18,
-  },
+  scrollContent: {},
   verseBlock: {},
-  verseBlockSpacing: {
-    marginBottom: 20,
-  },
   verseRef: {
     fontSize: 14,
     fontWeight: "700",

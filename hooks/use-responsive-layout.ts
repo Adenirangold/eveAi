@@ -10,7 +10,7 @@ const TABLET_CONTENT_WIDTH_FRACTION = 0.76;
 /** Floor so split-view / small tablet still has a sensible column. */
 const CONTENT_MAX_WIDTH_MIN = 560;
 /** Ceiling avoids unreadably wide lines on huge monitors / Stage Manager. */
-const CONTENT_MAX_WIDTH_MAX = 1180;
+const CONTENT_MAX_WIDTH_MAX = 1080;
 
 function contentMaxWidthForWindow(width: number): number | undefined {
   if (width < TABLET_MIN_WIDTH) return undefined;

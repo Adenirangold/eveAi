@@ -52,62 +52,62 @@ export default function CustomTabBar({
 
   const barBody = (
     <View style={styles.container}>
-        {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
-          const isFocused = state.index === index;
-          const meta = TAB_META[route.name] ?? {
-            active: "ellipse",
-            inactive: "ellipse-outline",
-            label: route.name,
-          };
-          const iconName = isFocused ? meta.active : meta.inactive;
-          const iconColor = isDark ? "#fff" : isFocused ? "#6C56FF" : "#6B7280";
-          const showBadge = route.name === "index" && totalUnread > 0;
+      {state.routes.map((route, index) => {
+        const { options } = descriptors[route.key];
+        const isFocused = state.index === index;
+        const meta = TAB_META[route.name] ?? {
+          active: "ellipse",
+          inactive: "ellipse-outline",
+          label: route.name,
+        };
+        const iconName = isFocused ? meta.active : meta.inactive;
+        const iconColor = isDark ? "#fff" : isFocused ? "#6C56FF" : "#6B7280";
+        const showBadge = route.name === "index" && totalUnread > 0;
 
-          const onPress = () => {
-            const event = navigation.emit({
-              type: "tabPress",
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name, route.params);
-            }
-          };
+        const onPress = () => {
+          const event = navigation.emit({
+            type: "tabPress",
+            target: route.key,
+            canPreventDefault: true,
+          });
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name, route.params);
+          }
+        };
 
-          return (
-            <TouchableOpacity
-              key={route.key}
-              accessibilityRole="button"
-              accessibilityState={isFocused ? { selected: true } : {}}
-              accessibilityLabel={options.tabBarAccessibilityLabel}
-              onPress={onPress}
-              style={[
-                styles.tab,
-                isFocused &&
-                  (isDark ? styles.tabActiveDark : styles.tabActiveLight),
-              ]}
-            >
-              <View style={styles.iconWrapper}>
-                <Ionicons name={iconName} size={28} color={iconColor} />
-                {showBadge && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText} numberOfLines={1}>
-                      {totalUnread > 99 ? "99+" : totalUnread}
-                    </Text>
-                  </View>
-                )}
-              </View>
-              {isFocused && (
-                <Text
-                  style={[styles.label, { color: isDark ? "#fff" : "#6C56FF" }]}
-                >
-                  {meta.label}
-                </Text>
+        return (
+          <TouchableOpacity
+            key={route.key}
+            accessibilityRole="button"
+            accessibilityState={isFocused ? { selected: true } : {}}
+            accessibilityLabel={options.tabBarAccessibilityLabel}
+            onPress={onPress}
+            style={[
+              styles.tab,
+              isFocused &&
+                (isDark ? styles.tabActiveDark : styles.tabActiveLight),
+            ]}
+          >
+            <View style={styles.iconWrapper}>
+              <Ionicons name={iconName} size={28} color={iconColor} />
+              {showBadge && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText} numberOfLines={1}>
+                    {totalUnread > 99 ? "99+" : totalUnread}
+                  </Text>
+                </View>
               )}
-            </TouchableOpacity>
-          );
-        })}
+            </View>
+            {isFocused && (
+              <Text
+                style={[styles.label, { color: isDark ? "#fff" : "#6C56FF" }]}
+              >
+                {meta.label}
+              </Text>
+            )}
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 
@@ -121,7 +121,7 @@ export default function CustomTabBar({
           style={[
             styles.wrapper,
             styles.wrapperTablet,
-            { maxWidth: contentMaxWidth },
+            { maxWidth: 450 },
             isDark ? styles.wrapperDark : styles.wrapperLight,
           ]}
         >

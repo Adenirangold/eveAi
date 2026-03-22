@@ -1,4 +1,5 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useResponsiveLayout } from "@/hooks/use-responsive-layout";
 import React from "react";
 import {
   ActivityIndicator,
@@ -49,6 +50,7 @@ const CustomButton = ({
   ...rest
 }: CustomButtonProps) => {
   const isDark = useColorScheme() === "dark";
+  const { isLargeFormFactor } = useResponsiveLayout();
 
   const VARIANT_COLORS: Record<Variant, string> = {
     primary: "#6C56FF",
@@ -77,6 +79,10 @@ const CustomButton = ({
           paddingHorizontal: 24,
           gap: 8,
           opacity: isDisabled ? 0.5 : 1,
+          ...(isLargeFormFactor && {
+            maxWidth: 450,
+            alignSelf: "center",
+          }),
         },
         style,
       ]}
